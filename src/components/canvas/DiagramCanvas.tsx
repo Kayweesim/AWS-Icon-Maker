@@ -71,8 +71,8 @@ export function DiagramCanvas() {
       // Drop groups with their top-left corner just above-left of the cursor.
       addGroupNode(item.groupType, { x: snap(point.x - 16), y: snap(point.y - 16) })
     } else {
-      // Centre the 48px icon (inside a 96px-wide node) on the cursor.
-      addIconNode(item, { x: snap(point.x - 48), y: snap(point.y - 26) })
+      // The store centres the icon on the cursor.
+      addIconNode(item, point)
     }
   }
 

@@ -7,6 +7,8 @@ export type ShortcutHandlers = {
   save?: () => void
   open?: () => void
   toggleHelp?: () => void
+  tidy?: () => void
+  autoArrange?: () => void
 }
 
 function isTyping(target: EventTarget | null) {
@@ -51,6 +53,9 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}) {
       }
 
       if (event.altKey) return
+
+      if (event.shiftKey && key === 't' && handlers.tidy) return run(handlers.tidy)
+      if (event.shiftKey && key === 'a' && handlers.autoArrange) return run(handlers.autoArrange)
 
       if (key === 'delete' || key === 'backspace') return run(store.deleteSelection)
       if (key === 'escape') return run(store.clearSelection)

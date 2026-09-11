@@ -1,15 +1,21 @@
-import { FilePlus2, FolderOpen, Keyboard, Redo2, Save, Undo2 } from 'lucide-react'
+import { Code2, FilePlus2, FolderOpen, Keyboard, Redo2, Save, Undo2 } from 'lucide-react'
 import type { DiagramActions } from '../../hooks/useDiagramActions'
 import { mod, shift } from '../../lib/platform'
 import { useDiagramStore } from '../../store/diagramStore'
+import { CleanUpMenu } from './CleanUpMenu'
 import { ExportMenu } from './ExportMenu'
 import { ToolbarButton, ToolbarDivider } from './ToolbarButton'
 
 const panel = 'pointer-events-auto flex h-11 items-center rounded-xl border border-zinc-200 bg-white/95 px-1.5 shadow-panel backdrop-blur'
 
-type Props = { actions: DiagramActions; onShowShortcuts: () => void }
+type Props = {
+  actions: DiagramActions
+  onShowShortcuts: () => void
+  codeOpen: boolean
+  onToggleCode: () => void
+}
 
-export function Toolbar({ actions, onShowShortcuts }: Props) {
+export function Toolbar({ actions, onShowShortcuts, codeOpen, onToggleCode }: Props) {
   const name = useDiagramStore((s) => s.name)
   const setName = useDiagramStore((s) => s.setName)
   const canUndo = useDiagramStore((s) => s.past.length > 0)
@@ -42,6 +48,8 @@ export function Toolbar({ actions, onShowShortcuts }: Props) {
           <Redo2 size={16} />
         </ToolbarButton>
         <ToolbarDivider />
+        <CleanUpMenu actions={actions} />
+        <ToolbarDivider />
         <ToolbarButton label="New diagram" onClick={actions.newDiagram}>
           <FilePlus2 size={16} />
         </ToolbarButton>
@@ -54,6 +62,18 @@ export function Toolbar({ actions, onShowShortcuts }: Props) {
         <ToolbarButton label="Keyboard shortcuts" shortcut="?" onClick={onShowShortcuts}>
           <Keyboard size={16} />
         </ToolbarButton>
+        <ToolbarDivider />
+        <button
+          type="button"
+          aria-pressed={codeOpen}
+          onClick={onToggleCode}
+          className={`flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors ${
+            codeOpen ? 'bg-zinc-100 font-medium text-zinc-900' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+          }`}
+        >
+          <Code2 size={16} />
+          Export as Code
+        </button>
         <ExportMenu actions={actions} />
       </div>
     </div>

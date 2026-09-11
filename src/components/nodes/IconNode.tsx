@@ -1,5 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { memo } from 'react'
+import { LABEL_GAP, LABEL_WIDTH, LEGACY_ICON_SIZE } from '../../layout/config'
+import { iconNodeWidth } from '../../layout/sizes'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { IconNode as IconNodeType } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
@@ -10,16 +12,16 @@ function IconNodeComponent({ id, data, selected }: NodeProps<IconNodeType>) {
   const editing = useDiagramStore((s) => s.editingId === id)
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const updateNodeData = useDiagramStore((s) => s.updateNodeData)
+  const size = data.iconSize ?? LEGACY_ICON_SIZE
 
   return (
-    <div className="flex w-24 flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center" style={{ width: iconNodeWidth(size), gap: LABEL_GAP }}>
       <div
-        className={`relative rounded-md p-0.5 transition-shadow ${
-          selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-        }`}
+        className={`relative rounded-[3px] transition-shadow ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+        style={{ width: size, height: size }}
       >
-        {/* Icons are shown at their predefined size, unaltered, per AWS guidelines. */}
-        <img src={data.iconPath} alt="" width={48} height={48} draggable={false} className="block h-12 w-12" />
+        {/* The official icon artwork, scaled uniformly to one of the package's predefined sizes. */}
+        <img src={data.iconPath} alt="" width={size} height={size} draggable={false} className="block h-full w-full" />
         {SIDES.map((side) => (
           <Handle key={side} id={side} type="source" position={side} />
         ))}
@@ -30,7 +32,8 @@ function IconNodeComponent({ id, data, selected }: NodeProps<IconNodeType>) {
         placeholder="Label"
         onCommit={(label) => updateNodeData(id, { label })}
         onDone={() => setEditingId(null)}
-        className="font-diagram w-full text-center text-[12px] leading-tight break-words whitespace-pre-wrap text-zinc-900"
+        style={{ width: LABEL_WIDTH }}
+        className="font-diagram text-center text-[12px] leading-[15px] break-words whitespace-pre-wrap text-zinc-900"
       />
     </div>
   )

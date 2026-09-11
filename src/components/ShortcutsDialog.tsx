@@ -25,6 +25,14 @@ const SECTIONS: { title: string; items: [string, string][] }[] = [
     ],
   },
   {
+    title: 'Clean up',
+    items: [
+      ['Tidy', `${shift}T`],
+      ['Auto-arrange', `${shift}A`],
+      ['Scope', 'Selection, or everything'],
+    ],
+  },
+  {
     title: 'View',
     items: [
       ['Pan', 'Scroll  or  Space + drag'],

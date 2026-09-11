@@ -16,6 +16,7 @@ dist-ssr
 .icon-cache
 public/aws-icons
 src/data/icon-manifest.json
+src/data/code-mappings.json
 
 # Editor directories and files
 .vscode/*

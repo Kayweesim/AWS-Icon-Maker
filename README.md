@@ -14,8 +14,8 @@ npm install
 npm run dev
 ```
 
-The first `npm run dev` or `npm run build` downloads the AWS icon package (about 14 MB) and
-generates the icon manifest. To refresh the icons at any time:
+The first `npm run dev`, `npm run build` or `npm test` downloads the AWS icon package (about 14 MB)
+and generates the icon manifest and code mappings. To refresh the icons at any time:
 
 ```bash
 npm run icons
@@ -35,39 +35,96 @@ To use a newer quarterly release, pass its zip URL:
   Auto Scaling group, and more. Groups can be resized and nested; nodes dropped or dragged inside
   become children and move with the group.
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
-  delete, arrow-key nudge, and undo/redo.
+  delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
 - **Files:** export PNG (2×) or SVG, save and open JSON, and autosave to localStorage.
 - **Properties panel:** appears when something is selected.
 - **Keyboard shortcuts:** press <kbd>?</kbd> in the app for the full list.
+
+### Export as Code
+
+**Export as Code** in the toolbar opens a panel with the current diagram as code. The code updates
+live as you edit. Each format has Copy and Download buttons.
+
+| Format | Output | Use it |
+| --- | --- | --- |
+| Mermaid | `architecture-beta` diagram with nested groups and labelled edges | Paste into a ```` ```mermaid ```` block on GitHub, Notion or any Markdown file |
+| Python | Runnable script for [`diagrams`](https://diagrams.mingrammer.com/), with nested `Cluster`s in AWS group colours | `pip install diagrams` (needs Graphviz), then run it to render a PNG |
+| Terraform | Scaffold with one `resource` block per node and placeholder values | Replace the placeholders, then `terraform init` and `plan` |
+
+- Mermaid uses its built-in icons by default, which render everywhere. The **AWS logos** option
+  uses the iconify `logos` pack, which only renders where that pack is registered (for example
+  mermaid.live).
+- Services with no mapping still export: they become a generic node with a `TODO: unmapped` comment.
+- Terraform never infers networking, security group rules or IAM from arrows. Connections are
+  listed as comments. Containment is used only where a type needs it, such as `vpc_id` for subnets.
+
+### Clean Up
+
+The ✨ menu in the toolbar tidies messy diagrams. With nodes selected, it applies to the selection
+only; otherwise to the whole diagram. Each action animates into place, is a single undo step, and
+re-attaches connections on the sides that face each other.
+
+- **Tidy** (<kbd>Shift</kbd>+<kbd>T</kbd>) keeps the layout as drawn. It resets icons to 64px,
+  snaps to the grid, aligns nodes within 10px of each other, separates overlapping nodes, and
+  fits each group to its contents with even padding.
+- **Auto-arrange** (<kbd>Shift</kbd>+<kbd>A</kbd>) rebuilds the layout with
+  [ELK](https://eclipse.dev/elk/)'s layered algorithm. It flows left to right along the arrows
+  with minimal crossings. Group contents are laid out inside their group (subnet → VPC → Region),
+  so nodes never leave their parent.
+
+Sizes, grid, padding and spacing live in `src/layout/config.ts`.
 
 ## Project structure
 
 ```
 scripts/
-  fetch-icons.mjs       downloads the AWS package and copies the SVGs to public/aws-icons
-  build-manifest.mjs    scans public/aws-icons and writes src/data/icon-manifest.json
+  fetch-icons.mjs                downloads the AWS package and copies the SVGs to public/aws-icons
+  build-manifest.mjs             scans public/aws-icons and writes src/data/icon-manifest.json
+  build-code-mappings.mjs        writes src/data/code-mappings.json (icon id -> Mermaid/diagrams/Terraform)
+  build-terraform-templates.mjs  writes src/exporters/terraform-templates.json from the provider schema
+  data/                          curated mapping overrides, snapshots of iconify and diagrams names
 src/
-  store/diagramStore.ts single Zustand store: nodes, edges, history, clipboard
-  data/                 icon manifest access and AWS group styles
-  lib/                  pure helpers: nesting geometry, clipboard, persistence, export
-  hooks/                keyboard shortcuts, autosave, file actions
+  store/diagramStore.ts   single Zustand store: nodes, edges, history, clipboard, layout animation
+  exporters/              pure diagram -> code functions: mermaid.ts, python.ts, terraform.ts
+  layout/                 pure layout functions: tidy.ts, autoArrange.ts, config.ts
+  data/                   icon manifest, code mappings, AWS group styles
+  lib/                    nesting geometry, clipboard, persistence, image export, highlighting
+  hooks/                  keyboard shortcuts, autosave, file and clean-up actions, generated code
   components/
-    canvas/             React Flow canvas and empty state
-    nodes/ edges/       icon node, group node, AWS-style edge
-    sidebar/            icon and group palette
-    panel/              properties panel
-    toolbar/            top bar, export menu, notices
+    canvas/ nodes/ edges/ React Flow canvas, icon and group nodes, AWS-style edge
+    sidebar/ panel/       palette and properties panel
+    code/                 Export as Code panel
+    toolbar/              top bar, menus, notices
 ```
 
-The downloaded icons (`public/aws-icons`) and the generated manifest are git-ignored.
+The downloaded icons (`public/aws-icons`), the manifest and the code mappings are generated and
+git-ignored. `terraform-templates.json` is committed, since regenerating it needs Terraform.
+
+## Tests
+
+```bash
+npm test
+```
+
+Unit tests cover each exporter on a sample diagram (ALB → two EC2 instances in private subnets
+→ RDS, inside a VPC) and on awkward input, plus Tidy and Auto-arrange on a deliberately messy
+diagram. Mermaid output is checked with Mermaid's own parser.
+
+Two toolchain checks run only when their tools are available:
+
+- `DIAGRAMS_PYTHON=/path/to/python`, a Python with `diagrams` installed, plus Graphviz on PATH:
+  runs the generated scripts and inspects the Graphviz output.
+- `TERRAFORM_PLUGIN_DIR=/path/to/.terraform/providers`, a local copy of the hashicorp/aws
+  provider: runs `terraform validate` and `terraform fmt -check` on scaffolds for the sample, the
+  awkward input, and every mapped resource type.
 
 ## Notes
 
 - **Icon usage:** AWS allows customers and partners to use these icons in architecture diagrams.
-  Per AWS's guidelines, the app shows icons exactly as supplied: no cropping, flipping, rotating,
-  recolouring or resizing within a diagram. The icons remain the property of Amazon Web Services.
-- **SVG export** embeds the rendered diagram in an SVG `foreignObject`. It displays correctly in
-  browsers, but some vector editors (Illustrator, Inkscape) don't render `foreignObject`. Use PNG
-  for those.
+  The icons remain the property of Amazon Web Services. The app never crops, flips, rotates or
+  recolours them, and only scales them uniformly to the package's predefined sizes.
+- **SVG image export** embeds the rendered diagram in an SVG `foreignObject`. It displays
+  correctly in browsers, but some vector editors (Illustrator, Inkscape) don't render
+  `foreignObject`. Use PNG for those.
 - **Opened JSON files are validated.** Icon references must point to the bundled `/aws-icons` SVGs,
   and unknown node or group types are rejected.

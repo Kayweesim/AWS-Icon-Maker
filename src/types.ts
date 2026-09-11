@@ -5,6 +5,8 @@ export type IconNodeData = {
   label: string
   iconPath: string
   iconId: string
+  /** Rendered icon size in px. Missing on icons saved before sizes existed (drawn at 48px). */
+  iconSize?: number
 }
 
 export type GroupNodeData = {
@@ -34,4 +36,4 @@ export type PaletteDragItem =
   | { kind: 'group'; groupType: GroupType }
 
 export const DRAG_MIME = 'application/x-aws-diagram-item'
-export const GRID_SIZE = 8
+export { GRID_SIZE } from './layout/config'

@@ -1,0 +1,1108 @@
+{
+ "source": "hashicorp/aws provider schema (format 1.0)",
+ "resources": {
+  "aws_acm_certificate": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_amplify_app": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_api_gateway_rest_api": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_apprunner_service": {
+   "attributes": [
+    [
+     "service_name",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "source_configuration",
+     "attributes": [],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_appsync_graphql_api": {
+   "attributes": [
+    [
+     "authentication_type",
+     "string"
+    ],
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_athena_workgroup": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_autoscaling_group": {
+   "attributes": [
+    [
+     "max_size",
+     "number"
+    ],
+    [
+     "min_size",
+     "number"
+    ]
+   ],
+   "blocks": [],
+   "tags": false
+  },
+  "aws_backup_vault": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_batch_compute_environment": {
+   "attributes": [
+    [
+     "type",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_cloudformation_stack": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_cloudfront_distribution": {
+   "attributes": [
+    [
+     "enabled",
+     "bool"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "default_cache_behavior",
+     "attributes": [
+      [
+       "allowed_methods",
+       [
+        "set",
+        "string"
+       ]
+      ],
+      [
+       "cached_methods",
+       [
+        "set",
+        "string"
+       ]
+      ],
+      [
+       "target_origin_id",
+       "string"
+      ],
+      [
+       "viewer_protocol_policy",
+       "string"
+      ]
+     ],
+     "blocks": []
+    },
+    {
+     "name": "origin",
+     "attributes": [
+      [
+       "domain_name",
+       "string"
+      ],
+      [
+       "origin_id",
+       "string"
+      ]
+     ],
+     "blocks": []
+    },
+    {
+     "name": "restrictions",
+     "attributes": [],
+     "blocks": [
+      {
+       "name": "geo_restriction",
+       "attributes": [
+        [
+         "restriction_type",
+         "string"
+        ]
+       ],
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "name": "viewer_certificate",
+     "attributes": [],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_cloudtrail": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "s3_bucket_name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_cloudwatch_event_bus": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_cloudwatch_log_group": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_codebuild_project": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "service_role",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "artifacts",
+     "attributes": [
+      [
+       "type",
+       "string"
+      ]
+     ],
+     "blocks": []
+    },
+    {
+     "name": "environment",
+     "attributes": [
+      [
+       "compute_type",
+       "string"
+      ],
+      [
+       "image",
+       "string"
+      ],
+      [
+       "type",
+       "string"
+      ]
+     ],
+     "blocks": []
+    },
+    {
+     "name": "source",
+     "attributes": [
+      [
+       "type",
+       "string"
+      ]
+     ],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_codecommit_repository": {
+   "attributes": [
+    [
+     "repository_name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_codedeploy_app": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_codepipeline": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "role_arn",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "artifact_store",
+     "attributes": [
+      [
+       "location",
+       "string"
+      ],
+      [
+       "type",
+       "string"
+      ]
+     ],
+     "blocks": []
+    },
+    {
+     "name": "stage",
+     "attributes": [
+      [
+       "name",
+       "string"
+      ]
+     ],
+     "blocks": [
+      {
+       "name": "action",
+       "attributes": [
+        [
+         "category",
+         "string"
+        ],
+        [
+         "name",
+         "string"
+        ],
+        [
+         "owner",
+         "string"
+        ],
+        [
+         "provider",
+         "string"
+        ],
+        [
+         "version",
+         "string"
+        ]
+       ],
+       "blocks": []
+      }
+     ]
+    }
+   ],
+   "tags": true
+  },
+  "aws_cognito_user_pool": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_config_configuration_recorder": {
+   "attributes": [
+    [
+     "role_arn",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": false
+  },
+  "aws_db_instance": {
+   "attributes": [
+    [
+     "instance_class",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_docdb_cluster": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_dx_connection": {
+   "attributes": [
+    [
+     "bandwidth",
+     "string"
+    ],
+    [
+     "location",
+     "string"
+    ],
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_dynamodb_table": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ebs_volume": {
+   "attributes": [
+    [
+     "availability_zone",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ec2_client_vpn_endpoint": {
+   "attributes": [
+    [
+     "server_certificate_arn",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "authentication_options",
+     "attributes": [
+      [
+       "type",
+       "string"
+      ]
+     ],
+     "blocks": []
+    },
+    {
+     "name": "connection_log_options",
+     "attributes": [
+      [
+       "enabled",
+       "bool"
+      ]
+     ],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_ec2_transit_gateway": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ecr_repository": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ecs_cluster": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ecs_service": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ecs_task_definition": {
+   "attributes": [
+    [
+     "container_definitions",
+     "string"
+    ],
+    [
+     "family",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_efs_file_system": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_eks_cluster": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "role_arn",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "vpc_config",
+     "attributes": [
+      [
+       "subnet_ids",
+       [
+        "set",
+        "string"
+       ]
+      ]
+     ],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_elastic_beanstalk_environment": {
+   "attributes": [
+    [
+     "application",
+     "string"
+    ],
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_elasticache_cluster": {
+   "attributes": [
+    [
+     "cluster_id",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_emr_cluster": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "release_label",
+     "string"
+    ],
+    [
+     "service_role",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_glacier_vault": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_globalaccelerator_accelerator": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_glue_job": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "role_arn",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "command",
+     "attributes": [
+      [
+       "script_location",
+       "string"
+      ]
+     ],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_guardduty_detector": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_iam_role": {
+   "attributes": [
+    [
+     "assume_role_policy",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_instance": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_internet_gateway": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_keyspaces_keyspace": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_kinesis_firehose_delivery_stream": {
+   "attributes": [
+    [
+     "destination",
+     "string"
+    ],
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_kinesis_stream": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_kms_key": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_lakeformation_resource": {
+   "attributes": [
+    [
+     "arn",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": false
+  },
+  "aws_lambda_function": {
+   "attributes": [
+    [
+     "function_name",
+     "string"
+    ],
+    [
+     "role",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_lb": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_lightsail_instance": {
+   "attributes": [
+    [
+     "availability_zone",
+     "string"
+    ],
+    [
+     "blueprint_id",
+     "string"
+    ],
+    [
+     "bundle_id",
+     "string"
+    ],
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_mq_broker": {
+   "attributes": [
+    [
+     "broker_name",
+     "string"
+    ],
+    [
+     "engine_type",
+     "string"
+    ],
+    [
+     "engine_version",
+     "string"
+    ],
+    [
+     "host_instance_type",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_msk_cluster": {
+   "attributes": [
+    [
+     "cluster_name",
+     "string"
+    ],
+    [
+     "kafka_version",
+     "string"
+    ],
+    [
+     "number_of_broker_nodes",
+     "number"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "broker_node_group_info",
+     "attributes": [
+      [
+       "client_subnets",
+       [
+        "set",
+        "string"
+       ]
+      ],
+      [
+       "instance_type",
+       "string"
+      ],
+      [
+       "security_groups",
+       [
+        "set",
+        "string"
+       ]
+      ]
+     ],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_nat_gateway": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_neptune_cluster": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_networkfirewall_firewall": {
+   "attributes": [
+    [
+     "firewall_policy_arn",
+     "string"
+    ],
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_opensearch_domain": {
+   "attributes": [
+    [
+     "domain_name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_rds_cluster": {
+   "attributes": [
+    [
+     "engine",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_rds_cluster_instance": {
+   "attributes": [
+    [
+     "cluster_identifier",
+     "string"
+    ],
+    [
+     "engine",
+     "string"
+    ],
+    [
+     "instance_class",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_redshift_cluster": {
+   "attributes": [
+    [
+     "cluster_identifier",
+     "string"
+    ],
+    [
+     "node_type",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_route53_zone": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_s3_bucket": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_sagemaker_endpoint": {
+   "attributes": [
+    [
+     "endpoint_config_name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_secretsmanager_secret": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_security_group": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_securityhub_account": {
+   "attributes": [],
+   "blocks": [],
+   "tags": false
+  },
+  "aws_service_discovery_private_dns_namespace": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "vpc",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_sesv2_email_identity": {
+   "attributes": [
+    [
+     "email_identity",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_sfn_state_machine": {
+   "attributes": [
+    [
+     "definition",
+     "string"
+    ],
+    [
+     "role_arn",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_shield_protection": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "resource_arn",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_sns_topic": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_sqs_queue": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_ssm_parameter": {
+   "attributes": [
+    [
+     "name",
+     "string"
+    ],
+    [
+     "type",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_subnet": {
+   "attributes": [
+    [
+     "vpc_id",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_timestreamwrite_database": {
+   "attributes": [
+    [
+     "database_name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_vpc": {
+   "attributes": [],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_vpc_endpoint": {
+   "attributes": [
+    [
+     "vpc_id",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_vpc_endpoint_service": {
+   "attributes": [
+    [
+     "acceptance_required",
+     "bool"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_vpn_connection": {
+   "attributes": [
+    [
+     "customer_gateway_id",
+     "string"
+    ],
+    [
+     "type",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  },
+  "aws_wafv2_web_acl": {
+   "attributes": [
+    [
+     "scope",
+     "string"
+    ]
+   ],
+   "blocks": [
+    {
+     "name": "default_action",
+     "attributes": [],
+     "blocks": []
+    },
+    {
+     "name": "visibility_config",
+     "attributes": [
+      [
+       "cloudwatch_metrics_enabled",
+       "bool"
+      ],
+      [
+       "metric_name",
+       "string"
+      ],
+      [
+       "sampled_requests_enabled",
+       "bool"
+      ]
+     ],
+     "blocks": []
+    }
+   ],
+   "tags": true
+  },
+  "aws_xray_group": {
+   "attributes": [
+    [
+     "filter_expression",
+     "string"
+    ],
+    [
+     "group_name",
+     "string"
+    ]
+   ],
+   "blocks": [],
+   "tags": true
+  }
+ }
+}

@@ -1,14 +1,14 @@
 import type { XYPosition } from '@xyflow/react'
+import { layoutSize } from '../layout/sizes'
 import type { AppNode } from '../types'
 
 export type Rect = { x: number; y: number; width: number; height: number }
 
-const ICON_NODE_SIZE = { width: 96, height: 72 }
-
 export function nodeSize(node: AppNode) {
+  const estimate = node.measured ? undefined : layoutSize(node)
   return {
-    width: node.measured?.width ?? node.width ?? ICON_NODE_SIZE.width,
-    height: node.measured?.height ?? node.height ?? ICON_NODE_SIZE.height,
+    width: node.measured?.width ?? node.width ?? estimate!.width,
+    height: node.measured?.height ?? node.height ?? estimate!.height,
   }
 }
 

@@ -4,25 +4,32 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "icons": "node scripts/fetch-icons.mjs && node scripts/build-manifest.mjs",
+    "icons": "node scripts/fetch-icons.mjs && node scripts/build-manifest.mjs && node scripts/build-code-mappings.mjs",
     "preicons:ensure": "node scripts/fetch-icons.mjs --if-missing",
-    "icons:ensure": "node scripts/build-manifest.mjs",
+    "icons:ensure": "node scripts/build-manifest.mjs && node scripts/build-code-mappings.mjs",
     "predev": "npm run icons:ensure",
     "dev": "vite",
     "prebuild": "npm run icons:ensure",
     "build": "tsc -b && vite build",
+    "pretest": "npm run icons:ensure",
+    "test": "vitest run",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@shikijs/langs": "^4.4.3",
+    "@shikijs/themes": "^4.4.3",
     "@xyflow/react": "^12.11.6",
+    "elkjs": "^0.12.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.44.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "shiki": "^4.4.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@mermaid-js/parser": "^2.0.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
@@ -31,6 +38,7 @@
     "oxlint": "^1.81.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^4.1.11"
   }
 }

@@ -1,9 +1,26 @@
 import { GROUP_TYPES, groupStyle, type GroupType } from '../../data/groups'
+import { ICON_SIZES } from '../../layout/config'
+import { iconSizeOf } from '../../layout/sizes'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { GroupNode, IconNode } from '../../types'
-import { Field, SelectField, TextField } from './controls'
+import { Field, Segmented, SelectField, TextField } from './controls'
 
 const groupOptions = GROUP_TYPES.map((type) => ({ value: type, label: groupStyle(type).label }))
+const sizeOptions = ICON_SIZES.map((size) => ({ value: String(size), label: `${size}px` }))
+
+export function IconSizeField({ nodes }: { nodes: IconNode[] }) {
+  const setIconSize = useDiagramStore((s) => s.setIconSize)
+  const sizes = new Set(nodes.map(iconSizeOf))
+
+  return (
+    <Segmented
+      label="Icon size"
+      value={sizes.size === 1 ? String([...sizes][0]) : undefined}
+      options={sizeOptions}
+      onChange={(size) => setIconSize(nodes.map((n) => n.id), Number(size))}
+    />
+  )
+}
 
 export function IconProperties({ node }: { node: IconNode }) {
   const updateNodeData = useDiagramStore((s) => s.updateNodeData)
@@ -17,6 +34,7 @@ export function IconProperties({ node }: { node: IconNode }) {
         </span>
       </div>
       <TextField key={node.id} label="Label" value={node.data.label} onCommit={(label) => updateNodeData(node.id, { label })} />
+      <IconSizeField nodes={[node]} />
     </>
   )
 }

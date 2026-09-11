@@ -67,7 +67,12 @@ function parseNode(raw: unknown, index: number): AppNode {
   if (raw.type === 'icon') {
     const iconPath = str(data.iconPath)
     if (!ICON_PATH.test(iconPath)) throw new Error(`${where} references an unknown icon`)
-    return { ...base, type: 'icon', data: { label: str(data.label), iconPath, iconId: str(data.iconId) } }
+    const iconSize = isNumber(data.iconSize) && data.iconSize >= 16 && data.iconSize <= 256 ? Math.round(data.iconSize) : undefined
+    return {
+      ...base,
+      type: 'icon',
+      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }) },
+    }
   }
 
   if (raw.type === 'awsGroup') {

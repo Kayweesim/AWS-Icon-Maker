@@ -1,10 +1,12 @@
 import { Copy, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useDiagramStore } from '../../store/diagramStore'
+import type { IconNode } from '../../types'
 import { EdgeProperties } from './EdgeProperties'
-import { GroupProperties, IconProperties } from './NodeProperties'
+import { GroupProperties, IconProperties, IconSizeField } from './NodeProperties'
 
-function PanelAction({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) {
+function PanelAction({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -29,8 +31,9 @@ export function PropertiesPanel() {
   if (count === 0) return null
 
   const single = count === 1 ? (nodes[0] ?? edges[0]) : undefined
+  const icons = nodes.filter((n): n is IconNode => n.type === 'icon')
   let title: string
-  let body: React.ReactNode = null
+  let body: ReactNode = null
 
   if (single && 'source' in single) {
     title = 'Connection'
@@ -43,7 +46,14 @@ export function PropertiesPanel() {
     body = <GroupProperties node={single} />
   } else {
     title = `${count} selected`
-    if (edges.length > 0) body = <EdgeProperties edges={edges} />
+    if (icons.length > 0 || edges.length > 0) {
+      body = (
+        <>
+          {icons.length > 0 && <IconSizeField nodes={icons} />}
+          {edges.length > 0 && <EdgeProperties edges={edges} />}
+        </>
+      )
+    }
   }
 
   return (
