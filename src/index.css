@@ -1,0 +1,58 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* AWS guidelines: diagram labels are Arial. */
+  --font-diagram: Arial, Helvetica, sans-serif;
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.06);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-50 font-sans text-zinc-900 antialiased;
+}
+
+/* React Flow overrides */
+.react-flow__attribution {
+  @apply bg-transparent text-[10px] opacity-60;
+}
+
+.react-flow__minimap {
+  @apply overflow-hidden rounded-lg border border-zinc-200 shadow-panel;
+}
+
+.react-flow__controls {
+  @apply overflow-hidden rounded-lg border border-zinc-200 shadow-panel;
+}
+
+.react-flow__controls-button {
+  @apply border-zinc-100;
+}
+
+.react-flow__handle {
+  @apply h-2 w-2 rounded-full border-2 border-white bg-blue-500 opacity-0 transition-opacity;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle,
+.react-flow__handle.connectingfrom,
+.react-flow.connecting .react-flow__handle {
+  @apply opacity-100;
+}
+
+/*
+ * Edges attached to nested nodes are elevated above the label layer, which would draw
+ * lines through their own labels. Keep labels on top of edges and nodes.
+ */
+.react-flow__edgelabel-renderer {
+  z-index: 2000;
+}
+
+.react-flow__selection {
+  @apply rounded-sm border-blue-400 bg-blue-500/5;
+}
