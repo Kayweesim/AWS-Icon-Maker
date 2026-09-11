@@ -13,7 +13,7 @@ export function EmptyState() {
         </div>
         <p className="text-[14px] font-medium text-zinc-600">Start your architecture</p>
         <p className="max-w-64 text-[12.5px] leading-relaxed text-zinc-400">
-          Drag groups and services from the left panel onto the canvas. Press ? for shortcuts.
+          Press S to search for a service at your cursor, or drag one from the left panel. Press ? for shortcuts.
         </p>
       </div>
     </div>

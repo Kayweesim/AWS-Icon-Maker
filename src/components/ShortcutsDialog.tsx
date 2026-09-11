@@ -25,6 +25,16 @@ const SECTIONS: { title: string; items: [string, string][] }[] = [
     ],
   },
   {
+    title: 'Draw',
+    items: [
+      ['Quick add at cursor', 'S'],
+      ['Arrow from selected service', 'A, then click a service'],
+      ['Keep chaining arrows', `${shift}click`],
+      ['Add text', 'T, then click'],
+      ['Cancel tool', 'Esc'],
+    ],
+  },
+  {
     title: 'Clean up',
     items: [
       ['Tidy', `${shift}T`],

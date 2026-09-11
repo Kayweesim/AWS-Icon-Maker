@@ -32,11 +32,19 @@ export function EditableLabel({ value, editing, onCommit, onDone, className = ''
     cancelledRef.current = false
     setDraft(value)
     draftRef.current = value
-    requestAnimationFrame(() => {
-      ref.current?.focus()
-      ref.current?.select()
-    })
+    // A node that was just added stays hidden until React Flow has measured it, and focusing a
+    // hidden textarea does nothing, so keep trying for a few frames.
+    let attempts = 0
+    let frame = 0
+    const focus = () => {
+      const el = ref.current
+      el?.focus()
+      if (el && document.activeElement === el) el.select()
+      else if (++attempts < 30) frame = requestAnimationFrame(focus)
+    }
+    frame = requestAnimationFrame(focus)
     return () => {
+      cancelAnimationFrame(frame)
       if (!cancelledRef.current) onCommitRef.current(draftRef.current.trim())
     }
     // Only react to editing starting or stopping.

@@ -34,15 +34,65 @@ body {
   @apply border-zinc-100;
 }
 
+/* Connection handles: a generous 20px hit area around a small visible dot. */
 .react-flow__handle {
-  @apply h-2 w-2 rounded-full border-2 border-white bg-blue-500 opacity-0 transition-opacity;
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.react-flow__handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: var(--color-blue-500);
+  box-shadow: 0 0 0 1px rgb(59 130 246 / 0.3);
+  transition:
+    width 120ms,
+    height 120ms;
+}
+
+.react-flow__handle:hover::after,
+.react-flow__handle.connectingfrom::after,
+.react-flow__handle.connectingto::after {
+  width: 14px;
+  height: 14px;
 }
 
 .react-flow__node:hover .react-flow__handle,
 .react-flow__node.selected .react-flow__handle,
 .react-flow__handle.connectingfrom,
 .react-flow.connecting .react-flow__handle {
-  @apply opacity-100;
+  opacity: 1;
+}
+
+/* Tools: crosshair while drawing arrows, text cursor while placing text. */
+.tool-arrow .react-flow__pane,
+.tool-arrow .react-flow__node {
+  cursor: crosshair !important;
+}
+
+.tool-arrow .react-flow__node-icon:hover img {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.tool-text .react-flow__pane,
+.tool-text .react-flow__node {
+  cursor: text !important;
 }
 
 /*

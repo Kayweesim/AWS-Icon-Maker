@@ -25,6 +25,18 @@ export const NODE_GAP = 24
 /** Space between a group's border and its contents. The top leaves room for the group label. */
 export const GROUP_PADDING = { top: 56, right: 32, bottom: 32, left: 32 }
 export const GROUP_MIN_SIZE = { width: 160, height: 104 }
+/** Group labels wrap instead of being cut off; clean-up widens groups to fit them, up to this width. */
+export const GROUP_LABEL_MAX_WIDTH = 320
+export const GROUP_LABEL_LINE_HEIGHT = 16
+/** Space between a (possibly wrapped) group label and the group's contents. */
+export const GROUP_HEADER_GAP = 24
+
+/** Text boxes added with the text tool. */
+export const TEXT_FONT_SIZE = 14
+export const TEXT_FONT_SIZES = [12, 14, 18, 24] as const
+export const TEXT_MAX_WIDTH = 280
+export const TEXT_LINE_HEIGHT = 1.3
+export const TEXT_PADDING = { x: 4, y: 2 }
 
 /** ELK layered layout spacing for Auto-arrange. */
 export const AUTO_ARRANGE_SPACING = {

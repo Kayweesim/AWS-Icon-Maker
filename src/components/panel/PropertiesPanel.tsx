@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { IconNode } from '../../types'
 import { EdgeProperties } from './EdgeProperties'
-import { GroupProperties, IconProperties, IconSizeField } from './NodeProperties'
+import { GroupProperties, IconProperties, IconSizeField, TextProperties } from './NodeProperties'
 
 function PanelAction({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: ReactNode }) {
   return (
@@ -44,6 +44,9 @@ export function PropertiesPanel() {
   } else if (single?.type === 'awsGroup') {
     title = 'Group'
     body = <GroupProperties node={single} />
+  } else if (single?.type === 'text') {
+    title = 'Text'
+    body = <TextProperties node={single} />
   } else {
     title = `${count} selected`
     if (icons.length > 0 || edges.length > 0) {

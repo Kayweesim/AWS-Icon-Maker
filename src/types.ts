@@ -14,9 +14,16 @@ export type GroupNodeData = {
   groupType: GroupType
 }
 
+/** Free text placed with the text tool. */
+export type TextNodeData = {
+  label: string
+  fontSize?: number
+}
+
 export type IconNode = Node<IconNodeData, 'icon'>
 export type GroupNode = Node<GroupNodeData, 'awsGroup'>
-export type AppNode = IconNode | GroupNode
+export type TextNode = Node<TextNodeData, 'text'>
+export type AppNode = IconNode | GroupNode | TextNode
 
 export type EdgePathType = 'step' | 'straight' | 'bezier'
 export type EdgeArrows = 'end' | 'both' | 'none'

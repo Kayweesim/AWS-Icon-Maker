@@ -2,13 +2,15 @@
 import { codeMappingFor, type CodeMapping } from '../data/codeMappings'
 import { GROUP_STYLES, groupStyle, type GroupType } from '../data/groups'
 import { layoutSize } from '../layout/sizes'
-import type { AppEdge, AppNode, EdgeArrows, GroupNode, IconNode } from '../types'
+import type { AppEdge, AppNode, EdgeArrows, GroupNode, IconNode, TextNode } from '../types'
 
 export type ExportInput = {
   name: string
   nodes: IconNode[]
   groups: GroupNode[]
   edges: AppEdge[]
+  /** Free text on the canvas, exported as comments. */
+  notes?: TextNode[]
 }
 
 export type ModelNode = {
@@ -29,6 +31,13 @@ export type ModelNode = {
   mapping?: CodeMapping
 }
 
+export type ModelNote = {
+  id: string
+  label: string
+  /** Label of the group the note sits in, if any. */
+  parentLabel?: string
+}
+
 export type ModelEdge = {
   id: string
   source: string
@@ -44,6 +53,8 @@ export type DiagramModel = {
   roots: ModelNode[]
   childrenOf: Map<string, ModelNode[]>
   edges: ModelEdge[]
+  notes: ModelNote[]
+  noteIds: Set<string>
 }
 
 export function toExportInput(name: string, nodes: AppNode[], edges: AppEdge[]): ExportInput {
@@ -52,6 +63,7 @@ export function toExportInput(name: string, nodes: AppNode[], edges: AppEdge[]):
     nodes: nodes.filter((n): n is IconNode => n.type === 'icon'),
     groups: nodes.filter((n): n is GroupNode => n.type === 'awsGroup'),
     edges,
+    notes: nodes.filter((n): n is TextNode => n.type === 'text'),
   }
 }
 
@@ -64,7 +76,7 @@ function nameFromIconId(iconId: unknown) {
 }
 
 // Rows of roughly 48px, then left to right, so output follows how the diagram reads.
-const readingOrder = (a: ModelNode, b: ModelNode) =>
+const readingOrder = <T extends { x: number; y: number; id: string }>(a: T, b: T) =>
   Math.round(a.y / 48) - Math.round(b.y / 48) || a.x - b.x || a.id.localeCompare(b.id)
 
 export function buildModel(input: ExportInput): DiagramModel {
@@ -147,7 +159,25 @@ export function buildModel(input: ExportInput): DiagramModel {
     })
   }
 
-  return { name: oneLine(input.name) || 'Untitled diagram', nodes, roots, childrenOf, edges }
+  const noteIds = new Set<string>()
+  const placedNotes: (ModelNote & { x: number; y: number })[] = []
+  for (const note of input.notes ?? []) {
+    if (!note || typeof note.id !== 'string') continue
+    noteIds.add(note.id)
+    const label = oneLine(note.data?.label)
+    if (!label) continue
+    const parent = note.parentId ? nodes.get(note.parentId) : undefined
+    placedNotes.push({
+      id: note.id,
+      label,
+      ...(parent?.kind === 'group' && { parentLabel: parent.label }),
+      x: (parent?.x ?? 0) + finite(note.position?.x),
+      y: (parent?.y ?? 0) + finite(note.position?.y),
+    })
+  }
+  const notes = placedNotes.sort(readingOrder).map(({ id, label, parentLabel }) => ({ id, label, ...(parentLabel && { parentLabel }) }))
+
+  return { name: oneLine(input.name) || 'Untitled diagram', nodes, roots, childrenOf, edges, notes, noteIds }
 }
 
 /** Visits the node tree depth-first in reading order. */
@@ -201,7 +231,9 @@ export function resolveEdges(model: DiagramModel): { resolved: ResolvedEdge[]; s
   for (const edge of model.edges) {
     const source = resolveEndpoint(model, edge.source)
     const target = resolveEndpoint(model, edge.target)
-    if (!model.nodes.has(edge.source) || !model.nodes.has(edge.target)) {
+    if (model.noteIds.has(edge.source) || model.noteIds.has(edge.target)) {
+      skipped.push({ edge, reason: 'it connects to a text note' })
+    } else if (!model.nodes.has(edge.source) || !model.nodes.has(edge.target)) {
       skipped.push({ edge, reason: 'one end is missing' })
     } else if (!source || !target) {
       skipped.push({ edge, reason: 'it connects to a group with no services' })

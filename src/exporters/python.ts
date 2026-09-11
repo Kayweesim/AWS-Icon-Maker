@@ -112,6 +112,9 @@ export function exportPython(input: ExportInput): string {
     },
   })
   if (model.nodes.size === 0) lines.push(`${INDENT}pass  # The diagram is empty`)
+  for (const note of model.notes) {
+    lines.push(`${INDENT}# Note${note.parentLabel ? ` (in ${note.parentLabel})` : ''}: ${note.label}`)
+  }
 
   const { resolved, skipped } = resolveEdges(model)
   if (resolved.length || skipped.length) lines.push('')

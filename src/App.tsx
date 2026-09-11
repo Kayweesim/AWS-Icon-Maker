@@ -3,6 +3,8 @@ import { useCallback, useMemo, useState } from 'react'
 import { ShortcutsDialog } from './components/ShortcutsDialog'
 import { DiagramCanvas } from './components/canvas/DiagramCanvas'
 import { EmptyState } from './components/canvas/EmptyState'
+import { QuickAddPanel } from './components/canvas/QuickAddPanel'
+import { ToolHint } from './components/canvas/ToolHint'
 import { CodePanel } from './components/code/CodePanel'
 import { PropertiesPanel } from './components/panel/PropertiesPanel'
 import { Sidebar } from './components/sidebar/Sidebar'
@@ -38,7 +40,9 @@ function Editor() {
           codeOpen={showCode}
           onToggleCode={() => setShowCode((v) => !v)}
         />
+        <ToolHint />
         <PropertiesPanel />
+        <QuickAddPanel />
         <NoticeToast notice={notice} onDismiss={dismissNotice} />
       </main>
       {showCode && <CodePanel onClose={() => setShowCode(false)} />}

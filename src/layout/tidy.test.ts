@@ -96,6 +96,34 @@ describe('tidy', () => {
     expect([e1.sourceHandle, e1.targetHandle]).toEqual(['right', 'left'])
   })
 
+  it('widens groups so long labels wrap instead of being cut off, and handles text boxes', async () => {
+    const { groupLabelLayout } = await import('./sizes')
+    const { GROUP_HEADER_GAP } = await import('./config')
+    const label = 'Security group — inbound 443 from the load balancer only'
+    const nodes: AppNode[] = [
+      { id: 'sg', type: 'awsGroup', position: { x: 0, y: 0 }, width: 400, height: 300, data: { label, groupType: 'security-group' } },
+      {
+        id: 'db',
+        type: 'icon',
+        position: { x: 150, y: 120 },
+        parentId: 'sg',
+        data: { label: 'Amazon RDS', iconId: 'svc:Databases/Amazon-RDS', iconPath: '/x.svg', iconSize: 64 },
+      },
+      { id: 'note', type: 'text', position: { x: 160, y: 130 }, parentId: 'sg', data: { label: 'Encrypted at rest' } },
+    ]
+    const tidied = applyLayoutResult(nodes, [], tidy(nodes, [])).nodes
+    const group = tidied.find((n) => n.id === 'sg')!
+    const { minWidth, headerHeight } = groupLabelLayout(label, false, group.width)
+
+    expect(group.width).toBeGreaterThanOrEqual(minWidth)
+    for (const child of tidied.filter((n) => n.parentId === 'sg')) {
+      expect(child.position.y, child.id).toBeGreaterThanOrEqual(headerHeight + GROUP_HEADER_GAP)
+    }
+    expect(overlappingPairs(tidied)).toEqual([])
+    expect(escapedChildren(tidied)).toEqual([])
+    expect(isEmptyLayout(tidy(tidied, []))).toBe(true)
+  })
+
   it('returns nothing to do for an empty diagram', () => {
     expect(isEmptyLayout(tidy([], []))).toBe(true)
   })

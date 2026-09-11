@@ -1,8 +1,20 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
 import type { ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api'
 import type { AppEdge, AppNode } from '../types'
-import { AUTO_ARRANGE_SPACING, GROUP_PADDING, ICON_SIZE, LABEL_CHAR_WIDTH, LABEL_LINE_HEIGHT, NODE_GAP } from './config'
-import { buildTree, fitGroup, makeBoxes, resolveScope, snap, snapUp, toLayoutResult, type Box, type Tree } from './shared'
+import { AUTO_ARRANGE_SPACING, GROUP_MIN_SIZE, GROUP_PADDING, ICON_SIZE, LABEL_CHAR_WIDTH, LABEL_LINE_HEIGHT, NODE_GAP } from './config'
+import {
+  buildTree,
+  fitGroup,
+  groupMinWidth,
+  groupTopPadding,
+  makeBoxes,
+  resolveScope,
+  snap,
+  snapUp,
+  toLayoutResult,
+  type Box,
+  type Tree,
+} from './shared'
 import { emptyLayout, type LayoutOptions, type LayoutResult } from './types'
 
 const elk = new ELK()
@@ -36,7 +48,18 @@ function toElkNode(id: string, tree: Tree, boxes: Map<string, Box>): ElkNode {
   const box = boxes.get(id)!
   const children = [...(tree.childrenOf.get(id) ?? [])].sort(readingOrder(boxes))
   if (box.kind === 'group' && children.length > 0) {
-    return { id, layoutOptions: GROUP_OPTIONS, children: children.map((child) => toElkNode(child, tree, boxes)) }
+    // Reserve room for the group label: a minimum width, and more top padding if it wraps.
+    const minWidth = groupMinWidth(box)
+    return {
+      id,
+      layoutOptions: {
+        ...GROUP_OPTIONS,
+        'elk.padding': `[top=${groupTopPadding(box, minWidth)},left=${GROUP_PADDING.left},bottom=${GROUP_PADDING.bottom},right=${GROUP_PADDING.right}]`,
+        'elk.nodeSize.constraints': '[MINIMUM_SIZE]',
+        'elk.nodeSize.minimum': `(${minWidth},${GROUP_MIN_SIZE.height})`,
+      },
+      children: children.map((child) => toElkNode(child, tree, boxes)),
+    }
   }
   return { id, width: box.width, height: box.height }
 }

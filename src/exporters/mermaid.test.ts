@@ -58,6 +58,8 @@ describe('exportMermaid', () => {
       expect(output).toContain('worker:R <-[sync]-> L:worker_2')
       expect(output).toContain('imaginary_service:L -[GET (id)]-> B:worker{group}')
       expect(output).toContain('%% Skipped connection "lost": one end is missing')
+      expect(output).toContain('%% Note (in Prod (eu-west-1) VPC): Remember: rotate keys quarterly')
+      expect(output).toContain('%% Skipped connection "see": it connects to a text note')
       expect(output).toContain('%% Skipped connection: it connects to a group with no services')
       expect(output).toContain('%% Skipped connection: it connects a group to its own contents')
       await expect(parseArchitecture(output), output).resolves.toBeTruthy()

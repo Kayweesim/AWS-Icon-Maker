@@ -73,6 +73,35 @@ describe('autoArrange', () => {
     expect(overlappingPairs(nodes.filter((n) => ['subA', 'subB', 'rds'].includes(n.id)))).toEqual([])
   })
 
+  it('leaves room for long group labels', async () => {
+    const { groupLabelLayout } = await import('./sizes')
+    const { GROUP_HEADER_GAP } = await import('./config')
+    const label = 'Security group — inbound 443 from the load balancer only'
+    const icon = (id: string, parentId: string, x: number): AppNode => ({
+      id,
+      type: 'icon',
+      position: { x, y: 80 },
+      parentId,
+      data: { label: id, iconId: 'svc:Compute/Amazon-EC2', iconPath: '/x.svg', iconSize: 64 },
+    })
+    const nodes: AppNode[] = [
+      { id: 'vpc', type: 'awsGroup', position: { x: 0, y: 0 }, width: 900, height: 500, data: { label: 'VPC', groupType: 'vpc' } },
+      { id: 'sg', type: 'awsGroup', position: { x: 40, y: 60 }, width: 200, height: 200, parentId: 'vpc', data: { label, groupType: 'security-group' } },
+      icon('a', 'sg', 40),
+      { id: 'sub', type: 'awsGroup', position: { x: 400, y: 60 }, width: 200, height: 200, parentId: 'vpc', data: { label: 'Private subnet', groupType: 'private-subnet' } },
+      icon('b', 'sub', 40),
+    ]
+    const edges = [{ id: 'e', type: 'aws' as const, source: 'a', target: 'b', data: { label: '', dashed: false, pathType: 'step' as const, arrows: 'end' as const } }]
+    const { nodes: arranged } = applyLayoutResult(nodes, edges, await autoArrange(nodes, edges))
+    const group = arranged.find((n) => n.id === 'sg')!
+    const { minWidth, headerHeight } = groupLabelLayout(label, false, group.width)
+
+    expect(group.width).toBeGreaterThanOrEqual(minWidth)
+    expect(arranged.find((n) => n.id === 'a')!.position.y).toBeGreaterThanOrEqual(headerHeight + GROUP_HEADER_GAP)
+    expect(overlappingPairs(arranged)).toEqual([])
+    expect(escapedChildren(arranged)).toEqual([])
+  })
+
   it('handles an empty diagram', async () => {
     expect(isEmptyLayout(await autoArrange([], []))).toBe(true)
   })

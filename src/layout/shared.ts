@@ -1,18 +1,21 @@
 import type { XYPosition } from '@xyflow/react'
 import type { AppEdge, AppNode } from '../types'
-import { GRID_SIZE, GROUP_MIN_SIZE, GROUP_PADDING, NODE_GAP } from './config'
-import { iconSizeOf, layoutSize } from './sizes'
+import { GRID_SIZE, GROUP_HEADER_GAP, GROUP_MIN_SIZE, GROUP_PADDING, NODE_GAP } from './config'
+import { groupHasIcon, groupLabelLayout, iconSizeOf, layoutSize } from './sizes'
 import { emptyLayout, type LayoutResult } from './types'
 
 /** Mutable working copy of a node's layout. Positions are relative to the parent. */
 export type Box = {
   id: string
-  kind: 'icon' | 'group'
+  kind: 'icon' | 'group' | 'text'
   x: number
   y: number
   width: number
   height: number
   iconSize: number
+  /** Group label, which sets a minimum width and the header height. */
+  label: string
+  hasIcon: boolean
 }
 
 // `|| 0` turns -0 into 0.
@@ -86,11 +89,13 @@ export function makeBoxes(tree: Tree, scope: Set<string>, iconSize?: number): Ma
     const size = layoutSize(node)
     const box: Box = {
       id,
-      kind: node.type === 'icon' ? 'icon' : 'group',
+      kind: node.type === 'icon' ? 'icon' : node.type === 'text' ? 'text' : 'group',
       x: node.position?.x ?? 0,
       y: node.position?.y ?? 0,
       ...size,
       iconSize: node.type === 'icon' ? iconSizeOf(node) : 0,
+      label: node.type === 'awsGroup' ? (node.data?.label ?? '') : '',
+      hasIcon: groupHasIcon(node),
     }
     if (node.type === 'icon' && iconSize && scope.has(id) && box.iconSize !== iconSize) {
       const cx = box.x + box.width / 2
@@ -150,13 +155,24 @@ export function separateBoxes(siblings: Box[], canMove: (box: Box) => boolean, g
   }
 }
 
+/** Top padding a group needs so its label, wrapped at `width`, clears the contents. */
+export function groupTopPadding(group: Pick<Box, 'label' | 'hasIcon'>, width: number) {
+  const { headerHeight } = groupLabelLayout(group.label, group.hasIcon, width)
+  return snapUp(Math.max(GROUP_PADDING.top, headerHeight + GROUP_HEADER_GAP))
+}
+
+/** Minimum width for a group: its label fits on one line, up to a cap. */
+export const groupMinWidth = (group: Pick<Box, 'label' | 'hasIcon'>) =>
+  Math.max(GROUP_MIN_SIZE.width, snapUp(groupLabelLayout(group.label, group.hasIcon).minWidth))
+
 /**
- * Resizes a group to wrap its children with even padding, shifting children to match.
+ * Resizes a group to wrap its children with even padding, shifting children to match. The group
+ * stays wide enough for its label, and the top padding grows if the label wraps.
  * With `growOnly`, the group keeps its bounds and only expands where a child sticks out.
  */
 export function fitGroup(group: Box, children: Box[], options: { growOnly?: boolean } = {}) {
   if (children.length === 0) {
-    group.width = Math.max(snapUp(group.width), GROUP_MIN_SIZE.width)
+    group.width = Math.max(snapUp(group.width), groupMinWidth(group))
     group.height = Math.max(snapUp(group.height), GROUP_MIN_SIZE.height)
     return
   }
@@ -166,19 +182,23 @@ export function fitGroup(group: Box, children: Box[], options: { growOnly?: bool
   const maxY = Math.max(...children.map((c) => c.y + c.height))
 
   let left = snapDown(minX - GROUP_PADDING.left)
-  let top = snapDown(minY - GROUP_PADDING.top)
   let right = snapUp(maxX + GROUP_PADDING.right)
-  let bottom = snapUp(maxY + GROUP_PADDING.bottom)
   if (options.growOnly) {
     if (minX >= 0) left = 0
-    if (minY >= 0) top = 0
     if (maxX <= group.width) right = group.width
+  }
+  const width = Math.max(right - left, groupMinWidth(group))
+
+  let top = snapDown(minY - groupTopPadding(group, width))
+  let bottom = snapUp(maxY + GROUP_PADDING.bottom)
+  if (options.growOnly) {
+    if (top >= 0) top = 0
     if (maxY <= group.height) bottom = group.height
   }
 
   group.x += left
   group.y += top
-  group.width = Math.max(right - left, GROUP_MIN_SIZE.width)
+  group.width = width
   group.height = Math.max(bottom - top, GROUP_MIN_SIZE.height)
   for (const child of children) {
     child.x -= left
@@ -213,7 +233,7 @@ export function toLayoutResult(tree: Tree, boxes: Map<string, Box>, edges: AppEd
       if (changed(box.width, current.width) || changed(box.height, current.height)) {
         result.groupSizes[id] = { width: box.width, height: box.height }
       }
-    } else if (box.iconSize !== iconSizeOf(node)) {
+    } else if (node.type === 'icon' && box.iconSize !== iconSizeOf(node)) {
       result.iconSizes[id] = box.iconSize
     }
   }

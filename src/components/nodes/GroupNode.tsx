@@ -55,7 +55,8 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
             onCommit={(label) => updateNodeData(id, { label })}
             onDone={() => setEditingId(null)}
             style={{ color: style.text }}
-            className="font-diagram block w-full truncate text-[12px] leading-4"
+            // Long labels wrap rather than being cut off; clean-up leaves room for them.
+            className="font-diagram block w-full text-[12px] leading-4 break-words whitespace-pre-wrap"
           />
         </div>
       </div>

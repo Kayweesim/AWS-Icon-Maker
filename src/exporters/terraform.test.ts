@@ -42,6 +42,8 @@ describe('exportTerraform', () => {
     expect(output).toContain('# Cycle A (Group): grouping only, no resource')
     expect(output).toContain('resource "aws_lambda_function" "worker_2" {')
     expect(output).toContain('#   skipped "lost": one end is missing')
+    expect(output).toContain('# Note (in Prod [eu-west-1] VPC): Remember: rotate keys quarterly\n')
+    expect(output).toContain('#   skipped "see": it connects to a text note')
   })
 
   it('escapes template sequences in labels and picks up the region from a Region group', () => {

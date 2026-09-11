@@ -1,6 +1,18 @@
 import { groupStyle } from '../data/groups'
 import type { AppNode, IconNode } from '../types'
-import { LABEL_CHAR_WIDTH, LABEL_GAP, LABEL_LINE_HEIGHT, LABEL_WIDTH, LEGACY_ICON_SIZE } from './config'
+import {
+  GROUP_LABEL_LINE_HEIGHT,
+  GROUP_LABEL_MAX_WIDTH,
+  LABEL_CHAR_WIDTH,
+  LABEL_GAP,
+  LABEL_LINE_HEIGHT,
+  LABEL_WIDTH,
+  LEGACY_ICON_SIZE,
+  TEXT_FONT_SIZE,
+  TEXT_LINE_HEIGHT,
+  TEXT_MAX_WIDTH,
+  TEXT_PADDING,
+} from './config'
 
 export function iconSizeOf(node: IconNode): number {
   const size = node.data?.iconSize
@@ -26,12 +38,50 @@ function labelHeight(node: IconNode): number {
   return estimateLabelHeight(label)
 }
 
-/** Node box size for layout, optionally as if the icon had a different size. */
+/** Approximate size of a text box before it has been rendered. */
+export function estimateTextSize(label: string, fontSize = TEXT_FONT_SIZE) {
+  const charWidth = fontSize * 0.55
+  const maxInner = TEXT_MAX_WIDTH - TEXT_PADDING.x * 2
+  let widest = 0
+  let lines = 0
+  for (const line of (label || ' ').split('\n')) {
+    const width = Math.max(1, line.length) * charWidth
+    widest = Math.max(widest, Math.min(width, maxInner))
+    lines += Math.max(1, Math.ceil(width / maxInner))
+  }
+  return {
+    width: Math.ceil(widest + TEXT_PADDING.x * 2),
+    height: Math.ceil(lines * fontSize * TEXT_LINE_HEIGHT + TEXT_PADDING.y * 2),
+  }
+}
+
+// Horizontal space taken by the group icon and label insets (see GroupNode).
+const labelChrome = (hasIcon: boolean) => (hasIcon ? 40 : 8) + 8
+
+/**
+ * How a group label lays out: the width that fits it on one line (capped, so very long labels
+ * wrap), and the header height it needs at a given group width.
+ */
+export function groupLabelLayout(label: string, hasIcon: boolean, width?: number) {
+  const textWidth = Math.ceil(label.length * LABEL_CHAR_WIDTH)
+  const minWidth = Math.min(textWidth + labelChrome(hasIcon) + 4, GROUP_LABEL_MAX_WIDTH)
+  const available = Math.max(40, (width ?? minWidth) - labelChrome(hasIcon))
+  const lines = Math.max(1, Math.ceil(textWidth / available))
+  return { minWidth, headerHeight: (hasIcon ? 8 : 6) + lines * GROUP_LABEL_LINE_HEIGHT }
+}
+
+export const groupHasIcon = (node: AppNode) => node.type === 'awsGroup' && !!groupStyle(node.data?.groupType).icon
+
+/** Node box size for layout, optionally as if an icon had a different size. */
 export function layoutSize(node: AppNode, iconSize?: number): { width: number; height: number } {
   if (node.type === 'icon') {
     const size = iconSize ?? iconSizeOf(node)
     const label = labelHeight(node)
     return { width: iconNodeWidth(size), height: size + (label ? LABEL_GAP + label : 0) }
+  }
+  if (node.type === 'text') {
+    const estimate = node.measured?.width && node.measured?.height ? undefined : estimateTextSize(node.data?.label ?? '', node.data?.fontSize)
+    return { width: node.measured?.width ?? estimate!.width, height: node.measured?.height ?? estimate!.height }
   }
   const style = groupStyle(node.data?.groupType)
   return {

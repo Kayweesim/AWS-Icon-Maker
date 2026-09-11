@@ -1,5 +1,6 @@
 import { useReactFlow } from '@xyflow/react'
 import { useEffect } from 'react'
+import { canvasPointer } from '../lib/pointer'
 import { useDiagramStore } from '../store/diagramStore'
 import { GRID_SIZE } from '../types'
 
@@ -24,14 +25,20 @@ const ARROWS: Record<string, [number, number]> = {
 }
 
 export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}) {
-  const { fitView, zoomIn, zoomOut } = useReactFlow()
+  const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useReactFlow()
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isTyping(event.target)) return
       const store = useDiagramStore.getState()
       const mod = event.metaKey || event.ctrlKey
       const key = event.key.toLowerCase()
+
+      // While the quick-add search is still empty, app shortcuts (⌘Z, ⌘A, Shift+T, …) close it and run.
+      const target = event.target
+      const emptyQuickAdd = target instanceof HTMLInputElement && target.dataset.quickAdd !== undefined && !target.value
+      const appShortcut = mod || (event.shiftKey && (key === 't' || key === 'a' || event.code === 'Digit1')) || key === '?'
+      if (emptyQuickAdd && appShortcut) store.closeQuickAdd()
+      else if (isTyping(target)) return
 
       const run = (action: () => void) => {
         event.preventDefault()
@@ -57,8 +64,26 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}) {
       if (event.shiftKey && key === 't' && handlers.tidy) return run(handlers.tidy)
       if (event.shiftKey && key === 'a' && handlers.autoArrange) return run(handlers.autoArrange)
 
+      // Tools: A draws an arrow (from the selected service), T places text. Pressing again cancels.
+      if (!event.shiftKey && key === 'a') {
+        return run(() => (store.tool.kind === 'arrow' ? store.cancelTool() : store.startArrowMode()))
+      }
+      if (!event.shiftKey && key === 't') {
+        return run(() => (store.tool.kind === 'text' ? store.cancelTool() : store.startTextMode()))
+      }
+      // S opens quick add at the cursor, or in the middle of the canvas if the cursor is elsewhere.
+      if (!event.shiftKey && key === 's') {
+        return run(() => {
+          const canvas = document.querySelector('.react-flow')?.getBoundingClientRect()
+          const screen = canvasPointer() ?? (canvas && { x: canvas.left + canvas.width / 2, y: canvas.top + canvas.height / 2 })
+          if (!screen) return
+          store.cancelTool()
+          store.openQuickAdd({ screen, flow: screenToFlowPosition(screen) })
+        })
+      }
+      if (key === 'escape') return run(store.tool.kind !== 'select' ? store.cancelTool : store.clearSelection)
+
       if (key === 'delete' || key === 'backspace') return run(store.deleteSelection)
-      if (key === 'escape') return run(store.clearSelection)
 
       if (key === 'enter' || key === 'f2') {
         const selected = [...store.nodes, ...store.edges].filter((item) => item.selected)
@@ -80,5 +105,5 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}) {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [fitView, zoomIn, zoomOut, handlers])
+  }, [fitView, zoomIn, zoomOut, screenToFlowPosition, handlers])
 }

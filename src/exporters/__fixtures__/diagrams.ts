@@ -82,8 +82,10 @@ export const awkwardInput: ExportInput = toExportInput(
     icon('orphan', 'Orphan', ICONS.ec2, 400, 700, 'does-not-exist'),
     icon('quotes', 'He said "hi" \\o/ Café ☕', ICONS.users, 600, 700),
     icon('digits', '123 start', ICONS.rds, 800, 700),
+    { id: 'note1', type: 'text', position: { x: 20, y: 20 }, parentId: 'g1', data: { label: 'Remember: rotate keys\nquarterly' } },
   ],
   [
+    edge('toNote', 'dup1', 'note1', { label: 'see' }),
     edge('toMissing', 'dup1', 'ghost', { label: 'lost' }),
     edge('toGroup', 'unmapped', 'g1', { label: 'GET [id]' }),
     edge('toEmptyGroup', 'orphan', 'empty'),

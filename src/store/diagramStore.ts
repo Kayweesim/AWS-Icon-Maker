@@ -8,9 +8,11 @@ import {
   type XYPosition,
 } from '@xyflow/react'
 import { create } from 'zustand'
+import { arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } from '../data/arrows'
 import { groupStyle, type GroupType } from '../data/groups'
 import { applyLayoutResult } from '../layout/apply'
-import { ICON_SIZE, LAYOUT_ANIMATION_MS } from '../layout/config'
+import { ICON_SIZE, LAYOUT_ANIMATION_MS, TEXT_FONT_SIZE } from '../layout/config'
+import { facingHandles } from '../layout/shared'
 import { iconNodeWidth, iconSizeOf } from '../layout/sizes'
 import { isEmptyLayout, type LayoutResult } from '../layout/types'
 import { animate, interpolateNodes } from '../lib/animation'
@@ -19,6 +21,19 @@ import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSiz
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
 import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData } from '../types'
+
+/** What clicking on the canvas does. */
+export type Tool =
+  | { kind: 'select' }
+  /** Connect two nodes: click the source (unless already chosen), then the target. */
+  | { kind: 'arrow'; preset: ArrowPresetId; sourceId: string | null }
+  /** Click to place a text box. */
+  | { kind: 'text' }
+
+const SELECT_TOOL: Tool = { kind: 'select' }
+
+/** Where quick add was opened: the clicked point on screen and on the canvas. */
+export type QuickAddTarget = { screen: XYPosition; flow: XYPosition }
 
 export type DiagramState = {
   name: string
@@ -29,12 +44,21 @@ export type DiagramState = {
   past: Snapshot[]
   future: Snapshot[]
   clipboard: ClipboardData | null
+  tool: Tool
+  /** Style for new arrows, whether drawn from handles or with the arrow tool. */
+  arrowPreset: ArrowPresetId
+  /** Open quick-add search panel, if any. */
+  quickAdd: QuickAddTarget | null
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
   onConnect: (connection: Connection) => void
-  addIconNode: (icon: { iconId: string; name: string; path: string }, position: XYPosition) => void
+  addIconNode: (icon: { iconId: string; name: string; path: string }, centre: XYPosition) => void
   addGroupNode: (groupType: GroupType, position: XYPosition) => void
+  /** Adds a text box at a point: with the given text, or empty and ready to type into. */
+  addTextNode: (position: XYPosition, label?: string) => void
+  /** Removes a text box with no text; undoing its creation too if that was the last step. */
+  removeEmptyText: (id: string) => void
   /** Re-evaluates which group each node sits in, e.g. after a drag. */
   reparentNodes: (ids: string[]) => void
   updateNodeData: (id: string, patch: Partial<AppNode['data']>) => void
@@ -44,6 +68,19 @@ export type DiagramState = {
   /** Resizes icons around their centres as a single undo step. */
   setIconSize: (ids: string[], size: number) => void
   setEditingId: (id: string | null) => void
+
+  /** Arrow mode, starting from the selected node if exactly one is selected. */
+  startArrowMode: (preset?: ArrowPresetId) => void
+  startTextMode: () => void
+  cancelTool: () => void
+  openQuickAdd: (target: QuickAddTarget) => void
+  closeQuickAdd: () => void
+  /** Restyles the selected arrows, or starts arrow mode with the style if none are selected. */
+  pickArrowPreset: (preset: ArrowPresetId) => void
+  /** Handles a node click in arrow mode. `keepGoing` continues from the target (Shift-click). */
+  arrowModeClick: (nodeId: string, options?: { keepGoing?: boolean }) => void
+  /** Connects two nodes on the sides that face each other. */
+  connectNodes: (sourceId: string, targetId: string, preset?: ArrowPresetId) => void
 
   selectAll: () => void
   clearSelection: () => void
@@ -74,8 +111,13 @@ export const DEFAULT_NAME = 'Untitled diagram'
 
 export const DEFAULT_EDGE_DATA: AwsEdgeData = { label: '', dashed: false, pathType: 'step', arrows: 'end' }
 
+const snapToGrid = (value: number) => Math.round(value / GRID_SIZE) * GRID_SIZE || 0
+
 const deselectAll = <T extends { selected?: boolean }>(items: T[]) =>
   items.map((item) => (item.selected ? { ...item, selected: false } : item))
+
+const selectOnly = (nodes: AppNode[], id: string) =>
+  nodes.map((n) => (!!n.selected === (n.id === id) ? n : { ...n, selected: n.id === id }))
 
 /** Places a new node (given in absolute coordinates) inside the innermost group under it. */
 function insertNode(nodes: AppNode[], node: AppNode): AppNode[] {
@@ -117,6 +159,13 @@ function reparent(nodes: AppNode[], ids: string[]): AppNode[] {
   return changed ? sortNodes(nodes) : nodes
 }
 
+/** Where arrows attach: the icon's centre for services, the box centre otherwise. */
+function connectionPoint(node: AppNode, byId: Map<string, AppNode>): XYPosition {
+  const rect = absoluteRect(node, byId)
+  const y = node.type === 'icon' ? rect.y + iconSizeOf(node) / 2 : rect.y + rect.height / 2
+  return { x: rect.x + rect.width / 2, y }
+}
+
 // Snapshot taken when a drag or resize begins; committed to history if something changed.
 let pendingSnapshot: Snapshot | null = null
 let pasteCount = 0
@@ -141,6 +190,9 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     past: [],
     future: [],
     clipboard: null,
+    tool: SELECT_TOOL,
+    arrowPreset: DEFAULT_ARROW_PRESET,
+    quickAdd: null,
 
     onNodesChange: (changes) => {
       // Removals are handled by deleteSelection so groups take their contents with them.
@@ -155,10 +207,11 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     onConnect: (connection) => {
       if (connection.source === connection.target) return
+      const style = arrowPreset(get().arrowPreset).style
       set({
         ...record(),
         edges: addEdge<AppEdge>(
-          { ...connection, id: newId('e'), type: 'aws', data: { ...DEFAULT_EDGE_DATA } },
+          { ...connection, id: newId('e'), type: 'aws', data: { ...DEFAULT_EDGE_DATA, ...style } },
           get().edges,
         ),
       })
@@ -171,8 +224,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
           id: newId('n'),
           type: 'icon',
           position: {
-            x: Math.round((centre.x - iconNodeWidth(ICON_SIZE) / 2) / GRID_SIZE) * GRID_SIZE,
-            y: Math.round((centre.y - ICON_SIZE / 2) / GRID_SIZE) * GRID_SIZE,
+            x: snapToGrid(centre.x - iconNodeWidth(ICON_SIZE) / 2),
+            y: snapToGrid(centre.y - ICON_SIZE / 2),
           },
           selected: true,
           data: { label: icon.name, iconPath: icon.path, iconId: icon.iconId, iconSize: ICON_SIZE },
@@ -195,6 +248,42 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
         }),
         edges: deselectAll(get().edges),
       })
+    },
+
+    addTextNode: (position, label) => {
+      const id = newId('t')
+      set({
+        ...record(),
+        nodes: insertNode(get().nodes, {
+          id,
+          type: 'text',
+          // The text's first line sits at the click point.
+          position: { x: snapToGrid(position.x), y: snapToGrid(position.y - TEXT_FONT_SIZE) },
+          selected: true,
+          data: { label: label ?? '', fontSize: TEXT_FONT_SIZE },
+        }),
+        edges: deselectAll(get().edges),
+        editingId: label ? null : id,
+        tool: SELECT_TOOL,
+      })
+    },
+
+    removeEmptyText: (id) => {
+      const { nodes, edges, past } = get()
+      const node = nodes.find((n) => n.id === id)
+      if (!node || node.type !== 'text' || node.data.label) return
+      const remaining = {
+        nodes: nodes.filter((n) => n.id !== id),
+        edges: edges.filter((e) => e.source !== id && e.target !== id),
+        editingId: get().editingId === id ? null : get().editingId,
+      }
+      const previous = past.at(-1)
+      if (previous && !previous.nodes.some((n) => n.id === id)) {
+        // The last step created this box; drop that step rather than recording a deletion.
+        set({ ...remaining, past: past.slice(0, -1) })
+      } else {
+        set({ ...record(), ...remaining })
+      }
     },
 
     reparentNodes: (ids) => {
@@ -245,6 +334,68 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     },
 
     setEditingId: (editingId) => set({ editingId }),
+
+    startArrowMode: (preset) => {
+      const selected = get().nodes.filter((n) => n.selected)
+      const chosen = preset ?? get().arrowPreset
+      set({
+        tool: { kind: 'arrow', preset: chosen, sourceId: selected.length === 1 ? selected[0].id : null },
+        arrowPreset: chosen,
+        editingId: null,
+      })
+    },
+
+    startTextMode: () => set({ tool: { kind: 'text' }, editingId: null }),
+
+    cancelTool: () => set({ tool: SELECT_TOOL }),
+
+    openQuickAdd: (quickAdd) => set({ quickAdd, editingId: null }),
+
+    closeQuickAdd: () => {
+      if (get().quickAdd) set({ quickAdd: null })
+    },
+
+    pickArrowPreset: (preset) => {
+      const selectedEdges = get().edges.filter((e) => e.selected)
+      if (selectedEdges.length === 0) return get().startArrowMode(preset)
+      get().updateEdgesData(
+        selectedEdges.map((e) => e.id),
+        arrowPreset(preset).style,
+      )
+      set({ arrowPreset: preset })
+    },
+
+    arrowModeClick: (nodeId, options = {}) => {
+      const { tool, nodes } = get()
+      if (tool.kind !== 'arrow') return
+      if (!tool.sourceId || !nodes.some((n) => n.id === tool.sourceId)) {
+        set({ tool: { ...tool, sourceId: nodeId }, nodes: selectOnly(nodes, nodeId) })
+        return
+      }
+      if (nodeId === tool.sourceId) return
+      get().connectNodes(tool.sourceId, nodeId, tool.preset)
+      set({
+        tool: options.keepGoing ? { ...tool, sourceId: nodeId } : SELECT_TOOL,
+        nodes: selectOnly(get().nodes, nodeId),
+      })
+    },
+
+    connectNodes: (sourceId, targetId, preset = get().arrowPreset) => {
+      const { nodes, edges } = get()
+      const byId = new Map(nodes.map((n) => [n.id, n]))
+      const source = byId.get(sourceId)
+      const target = byId.get(targetId)
+      if (!source || !target || sourceId === targetId) return
+      const edge: AppEdge = {
+        id: newId('e'),
+        type: 'aws',
+        source: sourceId,
+        target: targetId,
+        ...facingHandles(connectionPoint(source, byId), connectionPoint(target, byId)),
+        data: { ...DEFAULT_EDGE_DATA, ...arrowPreset(preset).style },
+      }
+      set({ ...record(), edges: [...deselectAll(edges), edge] })
+    },
 
     selectAll: () =>
       set({
@@ -315,7 +466,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const { past, future, nodes, edges } = get()
       const previous = past.at(-1)
       if (!previous) return
-      set({ ...previous, past: past.slice(0, -1), future: [{ nodes, edges }, ...future], editingId: null })
+      set({ ...previous, past: past.slice(0, -1), future: [{ nodes, edges }, ...future], editingId: null, tool: SELECT_TOOL })
     },
 
     redo: () => {
@@ -323,7 +474,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       const { past, future, nodes, edges } = get()
       const next = future[0]
       if (!next) return
-      set({ ...next, past: [...past, { nodes, edges }], future: future.slice(1), editingId: null })
+      set({ ...next, past: [...past, { nodes, edges }], future: future.slice(1), editingId: null, tool: SELECT_TOOL })
     },
 
     beginHistoryBatch: () => {
@@ -357,11 +508,21 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     setName: (name) => set({ name }),
 
-    newDiagram: () => set({ ...record(), nodes: [], edges: [], editingId: null, name: DEFAULT_NAME }),
+    newDiagram: () =>
+      set({ ...record(), nodes: [], edges: [], editingId: null, name: DEFAULT_NAME, tool: SELECT_TOOL }),
 
     loadDiagram: ({ nodes, edges, name }) => {
       finishLayoutAnimation?.()
-      set({ name: name || DEFAULT_NAME, nodes: sortNodes(nodes), edges, past: [], future: [], editingId: null })
+      set({
+        name: name || DEFAULT_NAME,
+        nodes: sortNodes(nodes),
+        edges,
+        past: [],
+        future: [],
+        editingId: null,
+        tool: SELECT_TOOL,
+        quickAdd: null,
+      })
     },
   }
 })

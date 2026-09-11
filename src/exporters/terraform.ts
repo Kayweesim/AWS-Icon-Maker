@@ -368,6 +368,9 @@ export function exportTerraform(input: ExportInput): string {
   })
 
   if (model.nodes.size === 0) lines.push('', '# The diagram is empty')
+  if (model.notes.length) {
+    lines.push('', ...model.notes.map((note) => `# Note${note.parentLabel ? ` (in ${note.parentLabel})` : ''}: ${note.label}`))
+  }
 
   const { resolved, skipped } = resolveEdges(model)
   if (resolved.length || skipped.length) {

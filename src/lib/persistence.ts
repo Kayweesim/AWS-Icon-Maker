@@ -87,6 +87,11 @@ function parseNode(raw: unknown, index: number): AppNode {
     }
   }
 
+  if (raw.type === 'text') {
+    const fontSize = isNumber(data.fontSize) && data.fontSize >= 8 && data.fontSize <= 72 ? Math.round(data.fontSize) : undefined
+    return { ...base, type: 'text', data: { label: str(data.label), ...(fontSize && { fontSize }) } }
+  }
+
   throw new Error(`${where} has an unsupported type`)
 }
 
@@ -120,9 +125,11 @@ export function parseDiagram(input: unknown): Diagram {
     throw new Error('The file is missing nodes or edges')
   }
 
-  const nodes = input.nodes.map(parseNode)
+  const parsed = input.nodes.map(parseNode)
+  if (new Set(parsed.map((n) => n.id)).size !== parsed.length) throw new Error('The file contains duplicate node ids')
+  // Text boxes with no text are invisible; drop them.
+  const nodes = parsed.filter((n) => n.type !== 'text' || n.data.label.trim())
   const ids = new Set(nodes.map((n) => n.id))
-  if (ids.size !== nodes.length) throw new Error('The file contains duplicate node ids')
 
   // Drop references to parents that don't exist or aren't groups, so React Flow doesn't throw.
   const groupIds = new Set(nodes.filter((n) => n.type === 'awsGroup').map((n) => n.id))

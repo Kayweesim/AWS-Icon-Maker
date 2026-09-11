@@ -41,6 +41,8 @@ describe('exportPython', () => {
     expect(output).toContain('n_123_start - Edge(style="dashed") - orphan')
     expect(output).toContain('# Connected to the "Prod (eu-west-1) VPC" group'.replace('(eu-west-1)', '[eu-west-1]'))
     expect(output).toContain('# Skipped connection "lost": one end is missing')
+    expect(output).toContain('    # Note (in Prod [eu-west-1] VPC): Remember: rotate keys quarterly\n')
+    expect(output).toContain('# Skipped connection "see": it connects to a text note')
     expect(output).toContain('with Cluster("Group", graph_attr=')
   })
 

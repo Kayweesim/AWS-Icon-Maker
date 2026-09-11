@@ -1,12 +1,13 @@
 import { GROUP_TYPES, groupStyle, type GroupType } from '../../data/groups'
-import { ICON_SIZES } from '../../layout/config'
+import { ICON_SIZES, TEXT_FONT_SIZE, TEXT_FONT_SIZES } from '../../layout/config'
 import { iconSizeOf } from '../../layout/sizes'
 import { useDiagramStore } from '../../store/diagramStore'
-import type { GroupNode, IconNode } from '../../types'
+import type { GroupNode, IconNode, TextNode } from '../../types'
 import { Field, Segmented, SelectField, TextField } from './controls'
 
 const groupOptions = GROUP_TYPES.map((type) => ({ value: type, label: groupStyle(type).label }))
 const sizeOptions = ICON_SIZES.map((size) => ({ value: String(size), label: `${size}px` }))
+const fontSizeOptions = TEXT_FONT_SIZES.map((size) => ({ value: String(size), label: `${size}` }))
 
 export function IconSizeField({ nodes }: { nodes: IconNode[] }) {
   const setIconSize = useDiagramStore((s) => s.setIconSize)
@@ -58,6 +59,22 @@ export function GroupProperties({ node }: { node: GroupNode }) {
           {Math.round(node.width ?? style.width)} × {Math.round(node.height ?? style.height)}
         </span>
       </Field>
+    </>
+  )
+}
+
+export function TextProperties({ node }: { node: TextNode }) {
+  const updateNodeData = useDiagramStore((s) => s.updateNodeData)
+
+  return (
+    <>
+      <Segmented
+        label="Text size"
+        value={String(node.data.fontSize ?? TEXT_FONT_SIZE)}
+        options={fontSizeOptions}
+        onChange={(size) => updateNodeData(node.id, { fontSize: Number(size) })}
+      />
+      <p className="text-[12px] leading-snug text-zinc-500">Double-click the text to edit it. Shift+Enter adds a line.</p>
     </>
   )
 }

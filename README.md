@@ -29,8 +29,19 @@ To use a newer quarterly release, pass its zip URL:
 - **Icon palette:** 304 service icons and 466 resource icons in 24 categories, with search and
   collapsible sections. Groups sit at the top of the palette.
 - **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection.
-- **Connections:** drag from any side handle. Each connection can have a label, a solid or dashed
-  line, an elbow, straight or curved path, and arrowheads at the end, both ends or neither.
+- **Quick add:** press <kbd>S</kbd> to open a search panel at your cursor. Type (for example
+  "lambda", "s3" or "public subnet"), use ↑/↓ to pick, and press Enter to place the highlighted
+  service or group exactly at that point, inside a group if the cursor was over one. The last
+  option adds what you typed as text.
+- **Labels stay clear of arrows:** an icon's bottom connection point sits below its label.
+- **Arrows:** a searchable Arrows palette at the top of the sidebar has presets for common
+  architecture connections: data flow, async/event (dashed), two-way, replication/backup, network
+  link and monitoring/logs. Click a preset, then click two services. Or select a service, press
+  <kbd>A</kbd> and click another (Shift-click keeps chaining). You can also drag from a side
+  handle. Each arrow can have a label, a solid or dashed line, an elbow, straight or curved path,
+  and arrowheads at the end, both ends or neither.
+- **Text:** press <kbd>T</kbd> and click anywhere, including inside a group, to add a text box you
+  can drag, resize the font of, and connect arrows to. Text is exported as comments.
 - **Groups:** AWS Cloud, Region, Availability Zone, VPC, public and private subnet, security group,
   Auto Scaling group, and more. Groups can be resized and nested; nodes dropped or dragged inside
   become children and move with the group.
@@ -66,7 +77,8 @@ re-attaches connections on the sides that face each other.
 
 - **Tidy** (<kbd>Shift</kbd>+<kbd>T</kbd>) keeps the layout as drawn. It resets icons to 64px,
   snaps to the grid, aligns nodes within 10px of each other, separates overlapping nodes, and
-  fits each group to its contents with even padding.
+  fits each group to its contents with even padding. Groups stay wide enough for their label,
+  and long labels wrap (with extra top padding) instead of being cut off.
 - **Auto-arrange** (<kbd>Shift</kbd>+<kbd>A</kbd>) rebuilds the layout with
   [ELK](https://eclipse.dev/elk/)'s layered algorithm. It flows left to right along the arrows
   with minimal crossings. Group contents are laid out inside their group (subnet → VPC → Region),
