@@ -88,6 +88,8 @@ export type DiagramState = {
   deleteSelection: () => void
   /** Selects just a group (⌘-click), so Delete removes the group but keeps what's inside. */
   selectGroupOnly: (id: string) => void
+  /** After a Shift+drag box selection: deselects groups and keeps only arrows between selected nodes. */
+  selectServicesOnly: () => void
   /** Removes a group, moving its contents up to the group's parent without moving them on screen. */
   deleteGroupOnly: (id: string) => void
   nudgeSelection: (dx: number, dy: number) => void
@@ -434,6 +436,17 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     selectGroupOnly: (id) => {
       if (get().nodes.find((n) => n.id === id)?.type !== 'awsGroup') return
       set({ nodes: selectOnly(get().nodes, id), edges: deselectAll(get().edges), groupOnlyId: id, editingId: null })
+    },
+
+    selectServicesOnly: () => {
+      const { nodes, edges } = get()
+      const kept = new Set(nodes.filter((n) => n.selected && n.type !== 'awsGroup').map((n) => n.id))
+      set({
+        // Fresh objects, so React Flow also refreshes its own copy of the selection (it updates that
+        // copy directly during a box selection) and its selection rectangle.
+        nodes: nodes.map((n) => (n.type === 'awsGroup' ? { ...n, selected: false } : n)),
+        edges: edges.map((e) => ({ ...e, selected: kept.has(e.source) && kept.has(e.target) })),
+      })
     },
 
     deleteGroupOnly: (id) => {

@@ -102,6 +102,41 @@ describe('autoArrange', () => {
     expect(escapedChildren(arranged)).toEqual([])
   })
 
+  describe('services with no arrows between them', () => {
+    const icon = (id: string, x: number, y: number): AppNode => ({
+      id,
+      type: 'icon',
+      position: { x, y },
+      parentId: 'g',
+      data: { label: id, iconId: 'svc:Compute/Amazon-EC2', iconPath: '/x.svg', iconSize: 64 },
+    })
+    const arrange = async (...icons: AppNode[]) => {
+      const nodes: AppNode[] = [
+        { id: 'g', type: 'awsGroup', position: { x: 0, y: 0 }, width: 900, height: 500, data: { label: 'VPC', groupType: 'vpc' } },
+        ...icons,
+      ]
+      return applyLayoutResult(nodes, [], await autoArrange(nodes, [], { selectedIds: ['g'] })).nodes
+    }
+    const orderBy = (nodes: AppNode[], axis: 'x' | 'y') =>
+      nodes.filter((n) => n.type === 'icon').sort((a, b) => a.position[axis] - b.position[axis]).map((n) => n.id)
+
+    it('stay in a row when drawn in a row', async () => {
+      const nodes = await arrange(icon('a', 40, 80), icon('b', 220, 100), icon('c', 400, 70), icon('d', 600, 115))
+      const icons = nodes.filter((n) => n.type === 'icon')
+      expect(new Set(icons.map((n) => n.position.y)).size).toBe(1)
+      expect(orderBy(nodes, 'x')).toEqual(['a', 'b', 'c', 'd'])
+      expect(overlappingPairs(nodes)).toEqual([])
+      expect(escapedChildren(nodes)).toEqual([])
+    })
+
+    it('stay in a column when drawn in a column', async () => {
+      const nodes = await arrange(icon('a', 80, 40), icon('b', 100, 200), icon('c', 70, 360))
+      const icons = nodes.filter((n) => n.type === 'icon')
+      expect(new Set(icons.map((n) => n.position.x)).size).toBe(1)
+      expect(escapedChildren(nodes)).toEqual([])
+    })
+  })
+
   it('handles an empty diagram', async () => {
     expect(isEmptyLayout(await autoArrange([], []))).toBe(true)
   })

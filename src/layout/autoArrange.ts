@@ -84,6 +84,51 @@ function toElkEdges(edges: AppEdge[], tree: Tree, members: Set<string>): ElkExte
     }))
 }
 
+/**
+ * ELK puts nodes without arrows between them in the same layer, which stacks them vertically.
+ * For siblings that were drawn mainly in a row, invisible edges chain the unconnected ones left
+ * to right in their current order, so they stay a row. Siblings drawn as a column are left alone.
+ */
+function rowChainEdges(tree: Tree, boxes: Map<string, Box>, members: Set<string>, layoutEdges: ElkExtendedEdge[]): ElkExtendedEdge[] {
+  const siblings = new Map<string | null, string[]>()
+  for (const id of members) {
+    const parent = tree.parentOf.get(id) ?? null
+    siblings.set(parent, [...(siblings.get(parent) ?? []), id])
+  }
+
+  const subtree = (id: string) => {
+    const ids = new Set<string>()
+    const add = (nodeId: string) => {
+      ids.add(nodeId)
+      for (const child of tree.childrenOf.get(nodeId) ?? []) add(child)
+    }
+    add(id)
+    return ids
+  }
+  // Connected if an arrow crosses the node's boundary (arrows entirely inside a group don't count).
+  const connected = (id: string) => {
+    const inside = subtree(id)
+    return layoutEdges.some((e) => inside.has(e.sources[0]) !== inside.has(e.targets[0]))
+  }
+
+  const chains: ElkExtendedEdge[] = []
+  for (const ids of siblings.values()) {
+    if (ids.length < 2) continue
+    const centres = ids.map((id) => {
+      const box = boxes.get(id)!
+      return { id, x: box.x + box.width / 2, y: box.y + box.height / 2 }
+    })
+    const spreadX = Math.max(...centres.map((c) => c.x)) - Math.min(...centres.map((c) => c.x))
+    const spreadY = Math.max(...centres.map((c) => c.y)) - Math.min(...centres.map((c) => c.y))
+    if (spreadX < spreadY) continue
+    const row = centres.filter((c) => !connected(c.id)).sort((a, b) => a.x - b.x)
+    for (let i = 1; i < row.length; i++) {
+      chains.push({ id: `__row__${row[i - 1].id}__${row[i].id}`, sources: [row[i - 1].id], targets: [row[i].id] })
+    }
+  }
+  return chains
+}
+
 /** Copies ELK's result into the boxes, snapped to the grid. Groups get their size from ELK. */
 function readBack(node: ElkNode, boxes: Map<string, Box>) {
   const box = boxes.get(node.id)!
@@ -139,11 +184,20 @@ export async function autoArrange(nodes: AppNode[], edges: AppEdge[], options: L
     const topLevel = ids.map((id) => boxes.get(id)!)
     const origin = bounds(topLevel)
 
+    // Only nodes in this block can be referenced by its edges.
+    const members = new Set<string>()
+    const addMember = (id: string) => {
+      members.add(id)
+      for (const child of tree.childrenOf.get(id) ?? []) addMember(child)
+    }
+    ids.forEach(addMember)
+    const layoutEdges = toElkEdges(edges, tree, members)
+
     const graph: ElkNode = {
       id: '__root__',
       layoutOptions: ROOT_OPTIONS,
       children: [...ids].sort(readingOrder(boxes)).map((id) => toElkNode(id, tree, boxes)),
-      edges: toElkEdges(edges, tree, scope),
+      edges: [...layoutEdges, ...rowChainEdges(tree, boxes, members, layoutEdges)],
     }
     const laidOut = await elk.layout(graph)
     laidOut.children?.forEach((child) => readBack(child, boxes))

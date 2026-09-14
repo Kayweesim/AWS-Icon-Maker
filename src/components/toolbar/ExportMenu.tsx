@@ -1,4 +1,4 @@
-import { ChevronDown, FileCode2, FileJson, Image } from 'lucide-react'
+import { ChevronDown, FileCode2, FileJson, Image, Workflow } from 'lucide-react'
 import type { DiagramActions } from '../../hooks/useDiagramActions'
 import { mod } from '../../lib/platform'
 import { Menu, MenuDivider, MenuItem } from './Menu'
@@ -23,6 +23,7 @@ export function ExportMenu({ actions }: { actions: DiagramActions }) {
         <>
           <MenuItem icon={<Image size={15} />} label="Export as PNG" onClick={() => (close(), actions.exportAs('png'))} />
           <MenuItem icon={<FileCode2 size={15} />} label="Export as SVG" onClick={() => (close(), actions.exportAs('svg'))} />
+          <MenuItem icon={<Workflow size={15} />} label="Export as draw.io" onClick={() => (close(), actions.exportDrawio())} />
           <MenuDivider />
           <MenuItem icon={<FileJson size={15} />} label="Save as JSON" hint={`${mod}S`} onClick={() => (close(), actions.save())} />
         </>

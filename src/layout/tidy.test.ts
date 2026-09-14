@@ -124,6 +124,50 @@ describe('tidy', () => {
     expect(isEmptyLayout(tidy(tidied, []))).toBe(true)
   })
 
+  describe('rows and columns in a selected group', () => {
+    const icon = (id: string, x: number, y: number): AppNode => ({
+      id,
+      type: 'icon',
+      position: { x, y },
+      parentId: 'g',
+      data: { label: id, iconId: 'svc:Compute/Amazon-EC2', iconPath: '/x.svg', iconSize: 64 },
+    })
+    const withGroup = (...icons: AppNode[]): AppNode[] => [
+      { id: 'g', type: 'awsGroup', position: { x: 0, y: 0 }, width: 900, height: 400, data: { label: 'VPC', groupType: 'vpc' } },
+      ...icons,
+    ]
+    const tidyGroup = (nodes: AppNode[]) =>
+      applyLayoutResult(nodes, [], tidy(nodes, [], { selectedIds: ['g'] })).nodes.filter((n) => n.type === 'icon')
+    const orderBy = (nodes: AppNode[], axis: 'x' | 'y') =>
+      [...nodes].sort((a, b) => a.position[axis] - b.position[axis]).map((n) => n.id)
+
+    it('lines up a roughly horizontal row', () => {
+      const icons = tidyGroup(withGroup(icon('a', 40, 80), icon('b', 220, 100), icon('c', 400, 70), icon('d', 600, 115)))
+      expect(new Set(icons.map((n) => n.position.y)).size).toBe(1)
+      expect(orderBy(icons, 'x')).toEqual(['a', 'b', 'c', 'd'])
+    })
+
+    it('spreads an overlapping horizontal cluster sideways instead of stacking it', () => {
+      const icons = tidyGroup(withGroup(icon('a', 40, 90), icon('b', 110, 110), icon('c', 180, 80), icon('d', 250, 120)))
+      expect(new Set(icons.map((n) => n.position.y)).size).toBe(1)
+      expect(orderBy(icons, 'x')).toEqual(['a', 'b', 'c', 'd'])
+      expect(overlappingPairs(icons)).toEqual([])
+    })
+
+    it('lines up a roughly vertical column', () => {
+      const icons = tidyGroup(withGroup(icon('a', 80, 40), icon('b', 110, 200), icon('c', 60, 360)))
+      expect(new Set(icons.map((n) => n.position.x)).size).toBe(1)
+      expect(orderBy(icons, 'y')).toEqual(['a', 'b', 'c'])
+    })
+
+    it('keeps separate rows separate', () => {
+      const icons = tidyGroup(
+        withGroup(icon('a', 40, 60), icon('b', 240, 66), icon('c', 440, 58), icon('d', 40, 220), icon('e', 240, 226), icon('f', 440, 214)),
+      )
+      expect(new Set(icons.map((n) => n.position.y)).size).toBe(2)
+    })
+  })
+
   it('returns nothing to do for an empty diagram', () => {
     expect(isEmptyLayout(tidy([], []))).toBe(true)
   })

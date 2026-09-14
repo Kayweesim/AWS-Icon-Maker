@@ -12,7 +12,7 @@ import {
   type NodeTypes,
   type XYPosition,
 } from '@xyflow/react'
-import { useState, type DragEvent, type MouseEvent } from 'react'
+import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { groupStyle } from '../../data/groups'
 import { setCanvasPointer } from '../../lib/pointer'
 import { useDiagramStore } from '../../store/diagramStore'
@@ -49,12 +49,16 @@ export function DiagramCanvas() {
   const cancelTool = useDiagramStore((s) => s.cancelTool)
   const closeQuickAdd = useDiagramStore((s) => s.closeQuickAdd)
   const selectGroupOnly = useDiagramStore((s) => s.selectGroupOnly)
+  const selectServicesOnly = useDiagramStore((s) => s.selectServicesOnly)
   const reparentNodes = useDiagramStore((s) => s.reparentNodes)
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const beginHistoryBatch = useDiagramStore((s) => s.beginHistoryBatch)
   const endHistoryBatch = useDiagramStore((s) => s.endHistoryBatch)
   const { screenToFlowPosition } = useReactFlow()
   const [pointer, setPointer] = useState<XYPosition | null>(null)
+  // Set during a Shift+drag box selection. When it ends, only services, text and the arrows
+  // between them stay selected, so they can be moved without the groups around them.
+  const servicesOnly = useRef(false)
 
   const selecting = tool.kind === 'select'
   const flowPoint = (event: MouseEvent) => screenToFlowPosition({ x: event.clientX, y: event.clientY })
@@ -121,6 +125,11 @@ export function DiagramCanvas() {
       edgeTypes={edgeTypes}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onSelectionStart={(event) => (servicesOnly.current = event.shiftKey)}
+      onSelectionEnd={() => {
+        if (servicesOnly.current) selectServicesOnly()
+        servicesOnly.current = false
+      }}
       onConnect={onConnect}
       onDragOver={onDragOver}
       onDrop={onDrop}

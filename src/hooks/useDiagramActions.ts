@@ -1,11 +1,13 @@
 import { useReactFlow } from '@xyflow/react'
 import { useEffect, useMemo, useState } from 'react'
+import { exportDrawio } from '../exporters/drawio'
 import { LAYOUT_ANIMATION_MS } from '../layout/config'
 import { tidy } from '../layout/tidy'
 import { isEmptyLayout } from '../layout/types'
 import { downloadBlob, pickFile, slugify } from '../lib/download'
 import { exportImage, type ImageFormat } from '../lib/export'
 import { parseDiagram, toFile } from '../lib/persistence'
+import { loadSvgImages } from '../lib/svg'
 import { useDiagramStore } from '../store/diagramStore'
 import type { AppEdge, AppNode } from '../types'
 
@@ -16,6 +18,8 @@ export type DiagramActions = {
   save: () => void
   open: () => Promise<void>
   exportAs: (format: ImageFormat) => Promise<void>
+  /** Downloads a .drawio file for draw.io / diagrams.net. */
+  exportDrawio: () => Promise<void>
   tidy: () => void
   autoArrange: () => Promise<void>
 }
@@ -78,6 +82,22 @@ export function useDiagramActions() {
           await exportImage(format, getNodesBounds(nodes), slugify(useDiagramStore.getState().name))
         } catch (error) {
           setNotice({ kind: 'error', text: `Export failed: ${errorMessage(error)}` })
+        }
+      },
+
+      exportDrawio: async () => {
+        const { name, nodes, edges } = useDiagramStore.getState()
+        if (nodes.length === 0) {
+          setNotice({ kind: 'info', text: 'Add something to the canvas before exporting' })
+          return
+        }
+        try {
+          // Icons are embedded so the file opens anywhere, offline.
+          const images = await loadSvgImages(nodes.flatMap((n) => (n.type === 'icon' ? [n.data.iconPath] : [])))
+          const xml = exportDrawio({ name, nodes, edges }, images)
+          downloadBlob(new Blob([xml], { type: 'application/xml' }), `${slugify(name)}.drawio`)
+        } catch (error) {
+          setNotice({ kind: 'error', text: `draw.io export failed: ${errorMessage(error)}` })
         }
       },
 

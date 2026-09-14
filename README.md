@@ -28,7 +28,9 @@ To use a newer quarterly release, pass its zip URL:
 
 - **Icon palette:** 304 service icons and 466 resource icons in 24 categories, with search and
   collapsible sections. Groups sit at the top of the palette.
-- **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection.
+- **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Hold
+  <kbd>Shift</kbd> while dragging a selection box to pick only services, text and arrows, and skip
+  the groups around them, so you can move services independently of their VPC or Region.
 - **Quick add:** press <kbd>S</kbd> to open a search panel at your cursor. Type (for example
   "lambda", "s3" or "public subnet"), use ↑/↓ to pick, and press Enter to place the highlighted
   service or group exactly at that point, inside a group if the cursor was over one. The last
@@ -52,7 +54,9 @@ To use a newer quarterly release, pass its zip URL:
   **Delete group, keep contents** in the properties panel.
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
   delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
-- **Files:** export PNG (2×) or SVG, save and open JSON, and autosave to localStorage.
+- **Files:** export PNG (2×), SVG or a draw.io file, save and open JSON, and autosave to
+  localStorage. The `.drawio` export opens in draw.io / diagrams.net with native AWS group
+  containers, the official icons embedded as images, and editable arrows and labels.
 - **Properties panel:** appears when something is selected.
 - **Keyboard shortcuts:** press <kbd>?</kbd> in the app for the full list.
 

@@ -19,6 +19,11 @@ export const LABEL_CHAR_WIDTH = 6.4
 
 /** Nodes whose centres are within this distance are aligned by Tidy. */
 export const ALIGN_THRESHOLD = 10
+/**
+ * Along the direction siblings are mainly laid out in (a row or a column), Tidy lines up nodes
+ * within this distance, so a roughly horizontal row becomes one clean row.
+ */
+export const ROW_ALIGN_TOLERANCE = 48
 /** Minimum space Tidy keeps between sibling nodes. */
 export const NODE_GAP = 24
 

@@ -1,10 +1,10 @@
 import type { AppEdge, AppNode } from '../types'
-import { ALIGN_THRESHOLD, ICON_SIZE } from './config'
+import { ALIGN_THRESHOLD, ICON_SIZE, ROW_ALIGN_TOLERANCE } from './config'
 import { buildTree, fitGroup, makeBoxes, resolveScope, separateBoxes, snap, toLayoutResult, type Box } from './shared'
 import { emptyLayout, type LayoutOptions, type LayoutResult } from './types'
 
-/** Groups values that lie within ALIGN_THRESHOLD of the first value in their run. */
-function alignAxis(boxes: Box[], read: (box: Box) => number, write: (box: Box, value: number) => void) {
+/** Groups values that lie within `threshold` of the first value in their run, and lines each run up. */
+function alignAxis(boxes: Box[], read: (box: Box) => number, write: (box: Box, value: number) => void, threshold: number) {
   const sorted = [...boxes].sort((a, b) => read(a) - read(b))
   let run: Box[] = []
   const flush = () => {
@@ -14,7 +14,7 @@ function alignAxis(boxes: Box[], read: (box: Box) => number, write: (box: Box, v
     }
   }
   for (const box of sorted) {
-    if (run.length && read(box) - read(run[0]) > ALIGN_THRESHOLD) {
+    if (run.length && read(box) - read(run[0]) > threshold) {
       flush()
       run = []
     }
@@ -23,14 +23,25 @@ function alignAxis(boxes: Box[], read: (box: Box) => number, write: (box: Box, v
   flush()
 }
 
-/** Icons align on their icon centres; groups align on their top-left corners. */
+const spread = (values: number[]) => (values.length ? Math.max(...values) - Math.min(...values) : 0)
+
+/**
+ * Icons align on their icon centres; groups on their top-left corners. Along the direction the
+ * icons are mainly laid out in, nodes within ROW_ALIGN_TOLERANCE line up, so a roughly horizontal
+ * row becomes one row (and a rough column one column). Across it, only nearly aligned nodes line
+ * up, so separate rows or columns stay separate.
+ */
 function alignSiblings(boxes: Box[]) {
   const icons = boxes.filter((box) => box.kind === 'icon')
-  alignAxis(icons, (b) => b.y + b.iconSize / 2, (b, v) => (b.y = v - b.iconSize / 2))
-  alignAxis(icons, (b) => b.x + b.width / 2, (b, v) => (b.x = v - b.width / 2))
+  const centreX = (b: Box) => b.x + b.width / 2
+  const centreY = (b: Box) => b.y + b.iconSize / 2
+  const horizontal = spread(icons.map(centreX)) >= spread(icons.map(centreY))
+  alignAxis(icons, centreY, (b, v) => (b.y = v - b.iconSize / 2), horizontal ? ROW_ALIGN_TOLERANCE : ALIGN_THRESHOLD)
+  alignAxis(icons, centreX, (b, v) => (b.x = v - b.width / 2), horizontal ? ALIGN_THRESHOLD : ROW_ALIGN_TOLERANCE)
+
   const groups = boxes.filter((box) => box.kind === 'group')
-  alignAxis(groups, (b) => b.y, (b, v) => (b.y = v))
-  alignAxis(groups, (b) => b.x, (b, v) => (b.x = v))
+  alignAxis(groups, (b) => b.y, (b, v) => (b.y = v), ALIGN_THRESHOLD)
+  alignAxis(groups, (b) => b.x, (b, v) => (b.x = v), ALIGN_THRESHOLD)
 }
 
 /**

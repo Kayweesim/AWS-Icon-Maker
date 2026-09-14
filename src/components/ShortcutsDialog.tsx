@@ -22,6 +22,7 @@ const SECTIONS: { title: string; items: [string, string][] }[] = [
       ['Select all', `${mod}A`],
       ['Add to selection', `${shift}click`],
       ['Box select', 'Drag on canvas'],
+      ['Box select services only', `${shift}drag`],
       ['Deselect', 'Esc'],
     ],
   },
