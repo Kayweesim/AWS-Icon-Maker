@@ -35,9 +35,11 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
           background: style.fill ?? 'transparent',
         }}
       >
+        {/* Only the header (icon and label text) selects and drags the group; see index.css. */}
         {iconPath && (
           // Group icons sit flush in the top-left corner at their predefined size.
           <img
+            data-group-header
             src={iconPath}
             alt=""
             width={32}
@@ -48,16 +50,18 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
           />
         )}
         <div className={`absolute top-0 right-2 ${iconPath ? 'left-10 pt-2' : 'left-2 pt-1.5'}`}>
-          <EditableLabel
-            value={data.label}
-            editing={editing}
-            placeholder="Group name"
-            onCommit={(label) => updateNodeData(id, { label })}
-            onDone={() => setEditingId(null)}
-            style={{ color: style.text }}
-            // Long labels wrap rather than being cut off; clean-up leaves room for them.
-            className="font-diagram block w-full text-[12px] leading-4 break-words whitespace-pre-wrap"
-          />
+          <div data-group-header className={editing ? 'block' : 'inline-block min-h-4 max-w-full min-w-6 align-top'}>
+            <EditableLabel
+              value={data.label}
+              editing={editing}
+              placeholder="Group name"
+              onCommit={(label) => updateNodeData(id, { label })}
+              onDone={() => setEditingId(null)}
+              style={{ color: style.text }}
+              // Long labels wrap rather than being cut off; clean-up leaves room for them.
+              className="font-diagram block w-full text-[12px] leading-4 break-words whitespace-pre-wrap"
+            />
+          </div>
         </div>
       </div>
       {SIDES.map((side) => (

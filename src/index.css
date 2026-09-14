@@ -78,6 +78,20 @@ body {
   opacity: 1;
 }
 
+/*
+ * Groups only respond to their header (top-left icon and label), resize controls and connection
+ * handles. Clicks anywhere else inside reach the services they contain, or the canvas.
+ * !important overrides React Flow's inline pointer-events on nodes.
+ */
+.react-flow__node-awsGroup {
+  pointer-events: none !important;
+}
+
+.react-flow__node-awsGroup [data-group-header],
+.react-flow__node-awsGroup .react-flow__resize-control {
+  pointer-events: auto;
+}
+
 /* Tools: crosshair while drawing arrows, text cursor while placing text. */
 .tool-arrow .react-flow__pane,
 .tool-arrow .react-flow__node {

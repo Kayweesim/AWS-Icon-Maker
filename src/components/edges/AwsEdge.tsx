@@ -4,9 +4,11 @@ import {
   getBezierPath,
   getSmoothStepPath,
   getStraightPath,
+  Position,
   type EdgeProps,
 } from '@xyflow/react'
 import { memo } from 'react'
+import { parallelEdgeOffsets } from '../../lib/parallelEdges'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { AppEdge } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
@@ -14,9 +16,16 @@ import { EditableLabel } from '../common/EditableLabel'
 const STROKE = '#545B64'
 const SELECTED = '#3B82F6'
 
-function buildPath(props: EdgeProps<AppEdge>) {
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props
-  const params = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }
+/** Slides an end point along the side of its node (down for left/right sides, right for top/bottom). */
+const slide = (x: number, y: number, side: Position, offset: number) =>
+  side === Position.Left || side === Position.Right ? { x, y: y + offset } : { x: x + offset, y }
+
+function buildPath(props: EdgeProps<AppEdge>, offset: number) {
+  const { sourcePosition, targetPosition, data } = props
+  // Arrows sharing both end points are offset so they run side by side (see parallelEdgeOffsets).
+  const source = slide(props.sourceX, props.sourceY, sourcePosition, offset)
+  const target = slide(props.targetX, props.targetY, targetPosition, offset)
+  const params = { sourceX: source.x, sourceY: source.y, targetX: target.x, targetY: target.y, sourcePosition, targetPosition }
   switch (data?.pathType) {
     case 'straight':
       return getStraightPath(params)
@@ -33,8 +42,9 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
   const editing = useDiagramStore((s) => s.editingId === id)
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData)
+  const offset = useDiagramStore((s) => parallelEdgeOffsets(s.edges).get(id) ?? 0)
 
-  const [path, labelX, labelY] = buildPath(props)
+  const [path, labelX, labelY] = buildPath(props, offset)
   const color = selected ? SELECTED : STROKE
   const arrows = data?.arrows ?? 'end'
   const markerId = `arrow-${id}`

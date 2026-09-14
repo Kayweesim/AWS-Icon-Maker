@@ -48,6 +48,7 @@ export function DiagramCanvas() {
   const arrowModeClick = useDiagramStore((s) => s.arrowModeClick)
   const cancelTool = useDiagramStore((s) => s.cancelTool)
   const closeQuickAdd = useDiagramStore((s) => s.closeQuickAdd)
+  const selectGroupOnly = useDiagramStore((s) => s.selectGroupOnly)
   const reparentNodes = useDiagramStore((s) => s.reparentNodes)
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const beginHistoryBatch = useDiagramStore((s) => s.beginHistoryBatch)
@@ -106,6 +107,8 @@ export function DiagramCanvas() {
     if (tool.kind === 'arrow') return arrowModeClick(node.id, { keepGoing: event.shiftKey })
     // Text can go inside groups and next to services.
     if (tool.kind === 'text') return addTextNode(flowPoint(event))
+    // ⌘/Ctrl-click a group to select just the group: Delete then keeps what's inside.
+    if (node.type === 'awsGroup' && (event.metaKey || event.ctrlKey)) return selectGroupOnly(node.id)
     stopEditingUnless(node.id)
   }
 

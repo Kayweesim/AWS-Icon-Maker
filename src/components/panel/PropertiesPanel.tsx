@@ -1,7 +1,7 @@
 import { Copy, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { useDiagramStore } from '../../store/diagramStore'
+import { groupOnlySelection, useDiagramStore } from '../../store/diagramStore'
 import type { IconNode } from '../../types'
 import { EdgeProperties } from './EdgeProperties'
 import { GroupProperties, IconProperties, IconSizeField, TextProperties } from './NodeProperties'
@@ -26,6 +26,7 @@ export function PropertiesPanel() {
   const edges = useDiagramStore(useShallow((s) => s.edges.filter((e) => e.selected)))
   const duplicate = useDiagramStore((s) => s.duplicate)
   const deleteSelection = useDiagramStore((s) => s.deleteSelection)
+  const groupOnly = useDiagramStore((s) => groupOnlySelection(s) !== null)
 
   const count = nodes.length + edges.length
   if (count === 0) return null
@@ -42,7 +43,7 @@ export function PropertiesPanel() {
     title = 'Service'
     body = <IconProperties node={single} />
   } else if (single?.type === 'awsGroup') {
-    title = 'Group'
+    title = groupOnly ? 'Group only' : 'Group'
     body = <GroupProperties node={single} />
   } else if (single?.type === 'text') {
     title = 'Text'
@@ -72,7 +73,8 @@ export function PropertiesPanel() {
             <Copy size={13} />
           </PanelAction>
         )}
-        <PanelAction label="Delete" onClick={deleteSelection} danger>
+        {/* In group-only mode (title "Group only") this keeps the group's contents. */}
+        <PanelAction label={groupOnly ? 'Delete group' : 'Delete'} onClick={deleteSelection} danger>
           <Trash2 size={13} />
         </PanelAction>
       </footer>

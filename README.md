@@ -39,12 +39,17 @@ To use a newer quarterly release, pass its zip URL:
   link and monitoring/logs. Click a preset, then click two services. Or select a service, press
   <kbd>A</kbd> and click another (Shift-click keeps chaining). You can also drag from a side
   handle. Each arrow can have a label, a solid or dashed line, an elbow, straight or curved path,
-  and arrowheads at the end, both ends or neither.
+  and arrowheads at the end, both ends or neither. Several arrows between the same two services
+  (a request and its reply, say) are drawn side by side: the second below the first.
 - **Text:** press <kbd>T</kbd> and click anywhere, including inside a group, to add a text box you
   can drag, resize the font of, and connect arrows to. Text is exported as comments.
 - **Groups:** AWS Cloud, Region, Availability Zone, VPC, public and private subnet, security group,
   Auto Scaling group, and more. Groups can be resized and nested; nodes dropped or dragged inside
-  become children and move with the group.
+  become children and move with the group. Select or drag a group by its top-left icon or its
+  label; clicks anywhere else inside reach the services in it (or start a box selection).
+  Deleting a group deletes its contents too. To remove just the group (an outer AWS Cloud, say)
+  and keep everything inside, <kbd>⌘</kbd>-click its icon or label and press Delete, or use
+  **Delete group, keep contents** in the properties panel.
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
   delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
 - **Files:** export PNG (2×) or SVG, save and open JSON, and autosave to localStorage.

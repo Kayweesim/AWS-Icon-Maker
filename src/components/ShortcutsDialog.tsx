@@ -11,6 +11,7 @@ const SECTIONS: { title: string; items: [string, string][] }[] = [
       ['Copy / Cut / Paste', `${mod}C  ${mod}X  ${mod}V`],
       ['Duplicate', `${mod}D`],
       ['Delete', '⌫'],
+      ['Delete a group, keep contents', `${mod}click group, ⌫`],
       ['Rename', 'Enter  or  double-click'],
       ['Nudge (×5 with Shift)', '← ↑ → ↓'],
     ],

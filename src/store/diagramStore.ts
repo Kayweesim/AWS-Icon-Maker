@@ -1,5 +1,4 @@
 import {
-  addEdge,
   applyEdgeChanges,
   applyNodeChanges,
   type Connection,
@@ -49,6 +48,8 @@ export type DiagramState = {
   arrowPreset: ArrowPresetId
   /** Open quick-add search panel, if any. */
   quickAdd: QuickAddTarget | null
+  /** Group selected with ⌘-click: deleting it removes only the group and keeps its contents. */
+  groupOnlyId: string | null
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
@@ -85,6 +86,10 @@ export type DiagramState = {
   selectAll: () => void
   clearSelection: () => void
   deleteSelection: () => void
+  /** Selects just a group (⌘-click), so Delete removes the group but keeps what's inside. */
+  selectGroupOnly: (id: string) => void
+  /** Removes a group, moving its contents up to the group's parent without moving them on screen. */
+  deleteGroupOnly: (id: string) => void
   nudgeSelection: (dx: number, dy: number) => void
   copy: () => void
   cut: () => void
@@ -118,6 +123,14 @@ const deselectAll = <T extends { selected?: boolean }>(items: T[]) =>
 
 const selectOnly = (nodes: AppNode[], id: string) =>
   nodes.map((n) => (!!n.selected === (n.id === id) ? n : { ...n, selected: n.id === id }))
+
+/** The group selected with ⌘-click, while it's still the whole selection. */
+export function groupOnlySelection(state: Pick<DiagramState, 'nodes' | 'edges' | 'groupOnlyId'>): string | null {
+  const { groupOnlyId, nodes, edges } = state
+  if (!groupOnlyId || edges.some((e) => e.selected)) return null
+  const selected = nodes.filter((n) => n.selected)
+  return selected.length === 1 && selected[0].id === groupOnlyId && selected[0].type === 'awsGroup' ? groupOnlyId : null
+}
 
 /** Places a new node (given in absolute coordinates) inside the innermost group under it. */
 function insertNode(nodes: AppNode[], node: AppNode): AppNode[] {
@@ -193,6 +206,7 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     tool: SELECT_TOOL,
     arrowPreset: DEFAULT_ARROW_PRESET,
     quickAdd: null,
+    groupOnlyId: null,
 
     onNodesChange: (changes) => {
       // Removals are handled by deleteSelection so groups take their contents with them.
@@ -208,13 +222,10 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     onConnect: (connection) => {
       if (connection.source === connection.target) return
       const style = arrowPreset(get().arrowPreset).style
-      set({
-        ...record(),
-        edges: addEdge<AppEdge>(
-          { ...connection, id: newId('e'), type: 'aws', data: { ...DEFAULT_EDGE_DATA, ...style } },
-          get().edges,
-        ),
-      })
+      // Unlike React Flow's addEdge, allow several arrows between the same dots (say a request and
+      // an async reply). They're drawn side by side; see parallelEdgeOffsets.
+      const edge: AppEdge = { ...connection, id: newId('e'), type: 'aws', data: { ...DEFAULT_EDGE_DATA, ...style } }
+      set({ ...record(), edges: [...get().edges, edge] })
     },
 
     addIconNode: (icon, centre) =>
@@ -406,6 +417,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     clearSelection: () => set({ nodes: deselectAll(get().nodes), edges: deselectAll(get().edges) }),
 
     deleteSelection: () => {
+      const groupOnly = groupOnlySelection(get())
+      if (groupOnly) return get().deleteGroupOnly(groupOnly)
       const { nodes, edges } = get()
       const removed = selectionWithDescendants(nodes)
       const remainingEdges = edges.filter((e) => !e.selected && !removed.has(e.source) && !removed.has(e.target))
@@ -414,6 +427,37 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
         ...record(),
         nodes: get().nodes.filter((n) => !removed.has(n.id)),
         edges: remainingEdges,
+        editingId: null,
+      })
+    },
+
+    selectGroupOnly: (id) => {
+      if (get().nodes.find((n) => n.id === id)?.type !== 'awsGroup') return
+      set({ nodes: selectOnly(get().nodes, id), edges: deselectAll(get().edges), groupOnlyId: id, editingId: null })
+    },
+
+    deleteGroupOnly: (id) => {
+      const { nodes, edges } = get()
+      const group = nodes.find((n) => n.id === id)
+      if (group?.type !== 'awsGroup') return
+      const lifted = nodes
+        .filter((n) => n.id !== id)
+        .map((n) =>
+          // Direct children move up a level; adding the group's offset keeps them in place.
+          n.parentId === id
+            ? ({
+                ...n,
+                parentId: group.parentId,
+                position: { x: n.position.x + group.position.x, y: n.position.y + group.position.y },
+              } as AppNode)
+            : n,
+        )
+      set({
+        ...record(),
+        nodes: sortNodes(lifted),
+        // Arrows to the group itself have nothing to attach to; arrows between its contents stay.
+        edges: edges.filter((e) => e.source !== id && e.target !== id),
+        groupOnlyId: null,
         editingId: null,
       })
     },

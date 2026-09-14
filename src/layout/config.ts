@@ -46,5 +46,8 @@ export const AUTO_ARRANGE_SPACING = {
   components: 64,
 }
 
+/** Space between arrows that connect the same two points, e.g. a request and its reply. */
+export const PARALLEL_EDGE_GAP = 16
+
 /** Duration of the clean-up animation. */
 export const LAYOUT_ANIMATION_MS = 300
