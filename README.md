@@ -78,7 +78,8 @@ yours. Anything that arrives is validated with the same parser as an opened file
 - **Arrows:** a searchable Arrows palette at the top of the sidebar has presets for common
   architecture connections: data flow, async/event (dashed), two-way, replication/backup, network
   link and monitoring/logs. Click a preset, then click two services. Or select a service, press
-  <kbd>A</kbd> and click another (Shift-click keeps chaining). You can also drag from a side
+  <kbd>A</kbd> and click another; <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> cycle the arrow
+  style while drawing (Shift-click keeps chaining). You can also drag from a side
   handle. Groups have several connection points along each side (more on bigger groups), so an
   arrow can meet a VPC or Region where it should rather than only at the middle of a side; a point
   you pick by hand survives Tidy and Auto-arrange as long as that side still faces the other node.

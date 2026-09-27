@@ -10,7 +10,7 @@ import { liveblocks, type WithLiveblocks } from '@liveblocks/zustand'
 import { create, type StateCreator } from 'zustand'
 import { collabClient, type UserPresence } from '../collab/client'
 import { mergeRemote } from '../collab/merge'
-import { arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } from '../data/arrows'
+import { ARROW_PRESETS, arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } from '../data/arrows'
 import { groupStyle, type GroupType } from '../data/groups'
 import { applyLayoutResult } from '../layout/apply'
 import { ICON_SIZE, LAYOUT_ANIMATION_MS, TEXT_FONT_SIZE } from '../layout/config'
@@ -81,6 +81,8 @@ export type DiagramState = {
 
   /** Arrow mode, starting from the selected node if exactly one is selected. */
   startArrowMode: (preset?: ArrowPresetId) => void
+  /** Cycles the style of the arrow currently being drawn, preserving its source node. */
+  cycleArrowPreset: (step: -1 | 1) => void
   startTextMode: () => void
   cancelTool: () => void
   openQuickAdd: (target: QuickAddTarget) => void
@@ -393,6 +395,15 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         arrowPreset: chosen,
         editingId: null,
       })
+    },
+
+    cycleArrowPreset: (step) => {
+      const { tool } = get()
+      if (tool.kind !== 'arrow') return
+      const currentIndex = ARROW_PRESETS.findIndex((preset) => preset.id === tool.preset)
+      const nextIndex = currentIndex < 0 ? 0 : (currentIndex + step + ARROW_PRESETS.length) % ARROW_PRESETS.length
+      const preset = ARROW_PRESETS[nextIndex].id
+      set({ tool: { ...tool, preset }, arrowPreset: preset })
     },
 
     startTextMode: () => set({ tool: { kind: 'text' }, editingId: null }),

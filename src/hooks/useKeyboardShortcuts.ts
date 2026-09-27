@@ -17,6 +17,18 @@ function isTyping(target: EventTarget | null) {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
 }
 
+function usesNativeTabNavigation(target: EventTarget | null) {
+  const element = target instanceof Element ? target : null
+  if (
+    element?.closest(
+      'input, textarea, select, button, a[href], [contenteditable]:not([contenteditable="false"]), [role="dialog"], [role="menu"]',
+    )
+  ) {
+    return true
+  }
+  return document.querySelector('[role="dialog"]') !== null
+}
+
 const ARROWS: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
   ArrowDown: [0, 1],
@@ -60,6 +72,10 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}) {
       }
 
       if (event.altKey) return
+
+      if (key === 'tab' && store.tool.kind === 'arrow' && !usesNativeTabNavigation(target)) {
+        return run(() => store.cycleArrowPreset(event.shiftKey ? -1 : 1))
+      }
 
       if (event.shiftKey && key === 't' && handlers.tidy) return run(handlers.tidy)
       if (event.shiftKey && key === 'a' && handlers.autoArrange) return run(handlers.autoArrange)

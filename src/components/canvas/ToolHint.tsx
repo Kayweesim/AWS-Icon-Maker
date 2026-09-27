@@ -71,6 +71,7 @@ export function ToolHint() {
         ) : (
           'Click the node the arrow starts from'
         )}
+        <span className="text-zinc-400"> · Tab / Shift+Tab cycles styles</span>
       </span>
     </Pill>
   )
