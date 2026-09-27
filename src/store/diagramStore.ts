@@ -56,7 +56,7 @@ export type DiagramState = {
   groupOnlyId: string | null
   /** The diagram as shared with a collaboration room. Synced by Liveblocks; see /collab. */
   doc: SharedDoc
-  /** What this user broadcasts to the room: name, colour and cursor. */
+  /** What this user broadcasts to the room: identity, cursor and selected nodes. */
   presence: UserPresence
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
@@ -229,7 +229,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     quickAdd: null,
     groupOnlyId: null,
     doc: { name: DEFAULT_NAME, nodes: [], edges: [] },
-    presence: { name: '', colour: '', cursor: null },
+    presence: { name: '', colour: '', cursor: null, selectedNodeIds: [] },
 
     onNodesChange: (changes) => {
       // Removals are handled by deleteSelection so groups take their contents with them.
