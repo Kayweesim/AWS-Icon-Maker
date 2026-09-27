@@ -8,7 +8,7 @@ import { emptyLayout, type LayoutResult } from './types'
 /** Mutable working copy of a node's layout. Positions are relative to the parent. */
 export type Box = {
   id: string
-  kind: 'icon' | 'group' | 'text'
+  kind: 'icon' | 'group' | 'text' | 'image'
   x: number
   y: number
   width: number
@@ -90,7 +90,7 @@ export function makeBoxes(tree: Tree, scope: Set<string>, iconSize?: number): Ma
     const size = layoutSize(node)
     const box: Box = {
       id,
-      kind: node.type === 'icon' ? 'icon' : node.type === 'text' ? 'text' : 'group',
+      kind: node.type === 'icon' ? 'icon' : node.type === 'text' ? 'text' : node.type === 'image' ? 'image' : 'group',
       x: node.position?.x ?? 0,
       y: node.position?.y ?? 0,
       ...size,

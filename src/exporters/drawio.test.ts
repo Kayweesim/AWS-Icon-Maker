@@ -58,6 +58,24 @@ describe('exportDrawio', () => {
     expect(web).toContain('<mxGeometry x="96" y="56" width="64" height="64"')
   })
 
+  it('embeds user images with their canvas dimensions', () => {
+    const nodes: AppNode[] = [
+      {
+        id: 'image',
+        type: 'image',
+        position: { x: 24, y: 40 },
+        width: 320,
+        height: 160,
+        data: { label: 'architecture', src: 'data:image/png;base64,AAEC/w==' },
+      },
+    ]
+    const out = exportDrawio({ name: 'Image', nodes, edges: [] })
+    assertWellFormedXml(out)
+    expect(cell(out, 'image')).toContain('shape=image')
+    expect(cell(out, 'image')).toContain('image=data:image/png,AAEC/w==')
+    expect(cell(out, 'image')).toContain('<mxGeometry x="24" y="40" width="320" height="160"')
+  })
+
   it('keeps arrow labels, styles and connection sides', () => {
     const edges: AppEdge[] = [
       { id: 'both', type: 'aws', source: 'web1', target: 'rds', sourceHandle: 'right', targetHandle: 'left', data: { label: 'SQL', dashed: true, pathType: 'straight', arrows: 'both' } },

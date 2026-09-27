@@ -15,17 +15,19 @@ import {
 import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { useCursorBroadcast } from '../../collab/useCursors'
 import { groupStyle } from '../../data/groups'
+import { acceptsCanvasDrop, firstDroppedImage, prepareDroppedImage } from '../../lib/imageDrop'
 import { setCanvasPointer } from '../../lib/pointer'
 import { useDiagramStore } from '../../store/diagramStore'
 import { DRAG_MIME, GRID_SIZE, type AppNode, type PaletteDragItem } from '../../types'
 import { AwsEdge } from '../edges/AwsEdge'
 import { GroupNode } from '../nodes/GroupNode'
 import { IconNode } from '../nodes/IconNode'
+import { ImageNode } from '../nodes/ImageNode'
 import { TextNode } from '../nodes/TextNode'
 import { ArrowPreview } from './ArrowPreview'
 import { Cursors } from './Cursors'
 
-const nodeTypes: NodeTypes = { icon: IconNode, awsGroup: GroupNode, text: TextNode }
+const nodeTypes: NodeTypes = { icon: IconNode, image: ImageNode, awsGroup: GroupNode, text: TextNode }
 const edgeTypes: EdgeTypes = { aws: AwsEdge }
 const connectionLineStyle = { stroke: '#3B82F6', strokeWidth: 1.5 }
 const multiSelectKeys = ['Meta', 'Control', 'Shift']
@@ -34,7 +36,7 @@ const panButtons = [1, 2]
 
 const snap = (value: number) => Math.round(value / GRID_SIZE) * GRID_SIZE
 
-const minimapColor = (node: AppNode) => (node.type === 'icon' ? '#d4d4d8' : 'transparent')
+const minimapColor = (node: AppNode) => (node.type === 'icon' || node.type === 'image' ? '#d4d4d8' : 'transparent')
 const minimapStroke = (node: AppNode) => (node.type === 'awsGroup' ? groupStyle(node.data.groupType).stroke : 'transparent')
 
 export function DiagramCanvas() {
@@ -45,6 +47,7 @@ export function DiagramCanvas() {
   const onEdgesChange = useDiagramStore((s) => s.onEdgesChange)
   const onConnect = useDiagramStore((s) => s.onConnect)
   const addIconNode = useDiagramStore((s) => s.addIconNode)
+  const addImageNode = useDiagramStore((s) => s.addImageNode)
   const addGroupNode = useDiagramStore((s) => s.addGroupNode)
   const addTextNode = useDiagramStore((s) => s.addTextNode)
   const arrowModeClick = useDiagramStore((s) => s.arrowModeClick)
@@ -77,24 +80,37 @@ export function DiagramCanvas() {
   }
 
   const onDragOver = (event: DragEvent) => {
-    if (!event.dataTransfer.types.includes(DRAG_MIME)) return
+    if (!acceptsCanvasDrop(event.dataTransfer)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'copy'
   }
 
   const onDrop = (event: DragEvent) => {
     const raw = event.dataTransfer.getData(DRAG_MIME)
-    if (!raw) return
-    event.preventDefault()
-    const item = JSON.parse(raw) as PaletteDragItem
     const point = screenToFlowPosition({ x: event.clientX, y: event.clientY })
-    if (item.kind === 'group') {
-      // Drop groups with their top-left corner just above-left of the cursor.
-      addGroupNode(item.groupType, { x: snap(point.x - 16), y: snap(point.y - 16) })
-    } else {
-      // The store centres the icon on the cursor.
-      addIconNode(item, point)
+    if (raw) {
+      event.preventDefault()
+      try {
+        const item = JSON.parse(raw) as PaletteDragItem
+        if (item.kind === 'group') {
+          // Drop groups with their top-left corner just above-left of the cursor.
+          addGroupNode(item.groupType, { x: snap(point.x - 16), y: snap(point.y - 16) })
+        } else {
+          // The store centres the icon on the cursor.
+          addIconNode(item, point)
+        }
+      } catch {
+        // Ignore malformed drag data from outside the app.
+      }
+      return
     }
+
+    const file = firstDroppedImage(event.dataTransfer)
+    if (!file) return
+    event.preventDefault()
+    void prepareDroppedImage(file)
+      .then((image) => addImageNode(image, point))
+      .catch(() => {})
   }
 
   const onMouseMove = (event: MouseEvent) => {

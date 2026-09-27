@@ -3,7 +3,7 @@ import { ICON_SIZES, TEXT_FONT_SIZE, TEXT_FONT_SIZES } from '../../layout/config
 import { iconSizeOf } from '../../layout/sizes'
 import { mod } from '../../lib/platform'
 import { useDiagramStore } from '../../store/diagramStore'
-import type { GroupNode, IconNode, TextNode } from '../../types'
+import type { GroupNode, IconNode, ImageNode, TextNode } from '../../types'
 import { Field, Segmented, SelectField, TextField } from './controls'
 
 const groupOptions = GROUP_TYPES.map((type) => ({ value: type, label: groupStyle(type).label }))
@@ -37,6 +37,24 @@ export function IconProperties({ node }: { node: IconNode }) {
       </div>
       <TextField key={node.id} label="Label" value={node.data.label} onCommit={(label) => updateNodeData(node.id, { label })} />
       <IconSizeField nodes={[node]} />
+    </>
+  )
+}
+
+export function ImageProperties({ node }: { node: ImageNode }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 rounded-lg bg-zinc-50 p-2.5">
+        <img src={node.data.src} alt="" className="h-12 w-12 rounded object-contain" />
+        <span className="min-w-0 truncate text-[12px] text-zinc-600" title={node.data.label}>
+          {node.data.label}
+        </span>
+      </div>
+      <Field label="Size">
+        <span className="text-[12px] text-zinc-600 tabular-nums">
+          {Math.round(node.width ?? 160)} × {Math.round(node.height ?? 160)}
+        </span>
+      </Field>
     </>
   )
 }

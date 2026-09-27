@@ -20,10 +20,17 @@ export type TextNodeData = {
   fontSize?: number
 }
 
+/** A user-supplied raster image embedded in the diagram as a data URL. */
+export type ImageNodeData = {
+  label: string
+  src: string
+}
+
 export type IconNode = Node<IconNodeData, 'icon'>
 export type GroupNode = Node<GroupNodeData, 'awsGroup'>
 export type TextNode = Node<TextNodeData, 'text'>
-export type AppNode = IconNode | GroupNode | TextNode
+export type ImageNode = Node<ImageNodeData, 'image'>
+export type AppNode = IconNode | GroupNode | TextNode | ImageNode
 
 export type EdgePathType = 'step' | 'straight' | 'bezier'
 export type EdgeArrows = 'end' | 'both' | 'none'

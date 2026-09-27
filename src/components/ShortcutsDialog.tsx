@@ -31,6 +31,7 @@ const SECTIONS: { title: string; items: [string, string][] }[] = [
     items: [
       ['Quick add at cursor', 'S'],
       ['Arrow from selected service', 'A, then click a service'],
+      ['Cycle arrow style', `Tab  /  ${shift}Tab`],
       ['Keep chaining arrows', `${shift}click`],
       ['Add text', 'T, then click'],
       ['Cancel tool', 'Esc'],
