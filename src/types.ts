@@ -45,5 +45,8 @@ export type PaletteDragItem =
 export const DRAG_MIME = 'application/x-aws-diagram-item'
 export { GRID_SIZE } from './layout/config'
 
+/** One sheet of a diagram: its own canvas, shared with everyone in the room. */
+export type DiagramPage = { id: string; name: string; nodes: AppNode[]; edges: AppEdge[] }
+
 /** The part of a diagram shared with a collaboration room: no selection or other UI state. */
-export type SharedDoc = { name: string; nodes: AppNode[]; edges: AppEdge[] }
+export type SharedDoc = { name: string; pages: DiagramPage[] }

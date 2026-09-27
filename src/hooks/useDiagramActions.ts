@@ -6,6 +6,7 @@ import { tidy } from '../layout/tidy'
 import { isEmptyLayout } from '../layout/types'
 import { downloadBlob, pickFile, slugify } from '../lib/download'
 import { exportImage, type ImageFormat } from '../lib/export'
+import { wholeDiagram } from '../lib/document'
 import { parseDiagram, toFile } from '../lib/persistence'
 import { loadSvgImages } from '../lib/svg'
 import { useDiagramStore } from '../store/diagramStore'
@@ -51,9 +52,9 @@ export function useDiagramActions() {
       },
 
       save: () => {
-        const { name, nodes, edges } = useDiagramStore.getState()
-        const json = JSON.stringify(toFile({ name, nodes, edges }), null, 2)
-        downloadBlob(new Blob([json], { type: 'application/json' }), `${slugify(name)}.json`)
+        const state = useDiagramStore.getState()
+        const json = JSON.stringify(toFile(wholeDiagram(state)), null, 2)
+        downloadBlob(new Blob([json], { type: 'application/json' }), `${slugify(state.name)}.json`)
       },
 
       open: async () => {

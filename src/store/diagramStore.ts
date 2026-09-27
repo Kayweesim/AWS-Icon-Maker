@@ -22,7 +22,8 @@ import { cloneClipboard, copySelection, selectionWithDescendants, type Clipboard
 import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSize, sortNodes } from '../lib/geometry'
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
-import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type SharedDoc } from '../types'
+import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
+import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc } from '../types'
 
 /** What clicking on the canvas does. */
 export type Tool =
@@ -53,6 +54,12 @@ export type DiagramState = {
   quickAdd: QuickAddTarget | null
   /** Group selected with ⌘-click: deleting it removes only the group and keeps its contents. */
   groupOnlyId: string | null
+  /** The sheets of this diagram, in tab order. Shared with everyone in the room. */
+  pages: PageTab[]
+  /** The page this user is looking at. Personal: everyone can sit on a different page. */
+  activePageId: string
+  /** Contents of the pages this user is not looking at, keyed by page id. */
+  parked: Record<string, ParkedPage>
   /** The diagram as shared with a collaboration room. Synced by Liveblocks; see /collab. */
   doc: SharedDoc
   /** What this user broadcasts to the room: name, colour and cursor. */
@@ -116,6 +123,14 @@ export type DiagramState = {
 
   setName: (name: string) => void
 
+  /** Adds a page after the current one and switches to it. */
+  addPage: () => void
+  /** Removes a page and everything on it. The last remaining page can't be removed. */
+  deletePage: (id: string) => void
+  renamePage: (id: string, name: string) => void
+  /** Parks the current page and opens another. Only changes what this user sees. */
+  selectPage: (id: string) => void
+
   /** Publishes the local diagram to the room. Called by the collaboration sync, not the UI. */
   publishDoc: (doc: SharedDoc) => void
   /** Applies a diagram received from the room, keeping this user's selection and drag intact. */
@@ -123,8 +138,8 @@ export type DiagramState = {
   setPresence: (patch: Partial<UserPresence>) => void
   /** Clears the canvas as an undoable step. */
   newDiagram: () => void
-  /** Replaces the diagram and resets history, e.g. when opening a file. */
-  loadDiagram: (diagram: Snapshot & { name?: string }) => void
+  /** Replaces the whole diagram, pages and all, and resets history. */
+  loadDiagram: (diagram: { name?: string; pages: DiagramPage[] }) => void
 }
 
 export const DEFAULT_NAME = 'Untitled diagram'
@@ -195,6 +210,18 @@ function connectionPoint(node: AppNode, byId: Map<string, AppNode>): XYPosition 
 }
 
 // Snapshot taken when a drag or resize begins; committed to history if something changed.
+const firstPage: PageTab = { id: newId('p'), name: 'Page 1' }
+
+/** Reset when the canvas is swapped out from under the user. */
+const clearedUiState = { editingId: null, tool: SELECT_TOOL, quickAdd: null, groupOnlyId: null } as const
+
+const currentPage = (state: Pick<DiagramState, 'nodes' | 'edges' | 'past' | 'future'>): ParkedPage => ({
+  nodes: state.nodes,
+  edges: state.edges,
+  past: state.past,
+  future: state.future,
+})
+
 let pendingSnapshot: Snapshot | null = null
 let pasteCount = 0
 // Jumps a running layout animation to its end state.
@@ -224,8 +251,11 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     arrowPreset: DEFAULT_ARROW_PRESET,
     quickAdd: null,
     groupOnlyId: null,
-    doc: { name: DEFAULT_NAME, nodes: [], edges: [] },
-    presence: { name: '', colour: '', cursor: null },
+    pages: [firstPage],
+    activePageId: firstPage.id,
+    parked: {},
+    doc: { name: DEFAULT_NAME, pages: [{ ...firstPage, nodes: [], edges: [] }] },
+    presence: { name: '', colour: '', cursor: null, pageId: firstPage.id },
 
     onNodesChange: (changes) => {
       // Removals are handled by deleteSelection so groups take their contents with them.
@@ -582,30 +612,113 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
 
     setName: (name) => set({ name }),
 
+    addPage: () => {
+      const { pages, activePageId } = get()
+      const page: PageTab = { id: newId('p'), name: nextPageName(pages) }
+      const at = pages.findIndex((p) => p.id === activePageId)
+      set({
+        pages: [...pages.slice(0, at + 1), page, ...pages.slice(at + 1)],
+        parked: { ...get().parked, [activePageId]: currentPage(get()) },
+        activePageId: page.id,
+        ...EMPTY_PAGE,
+        ...clearedUiState,
+      })
+    },
+
+    deletePage: (id) => {
+      const { pages, activePageId, parked } = get()
+      if (pages.length < 2 || !pages.some((p) => p.id === id)) return
+      const next = id === activePageId ? neighbourOf(pages, id) : undefined
+      const remaining = { ...parked }
+      delete remaining[id]
+      if (!next) {
+        set({ pages: pages.filter((p) => p.id !== id), parked: remaining })
+        return
+      }
+      const opened = remaining[next.id] ?? EMPTY_PAGE
+      delete remaining[next.id]
+      set({
+        pages: pages.filter((p) => p.id !== id),
+        parked: remaining,
+        activePageId: next.id,
+        ...opened,
+        ...clearedUiState,
+      })
+    },
+
+    renamePage: (id, name) =>
+      set({
+        pages: get().pages.map((page) => (page.id === id ? { ...page, name: name.trim().slice(0, 40) || page.name } : page)),
+      }),
+
+    selectPage: (id) => {
+      const { activePageId, pages, parked } = get()
+      if (id === activePageId || !pages.some((p) => p.id === id)) return
+      finishLayoutAnimation?.()
+      const opened = parked[id] ?? EMPTY_PAGE
+      const rest = { ...parked, [activePageId]: currentPage(get()) }
+      delete rest[id]
+      set({ activePageId: id, parked: rest, ...opened, ...clearedUiState })
+    },
+
     publishDoc: (doc) => set({ doc }),
 
     applyRemoteDoc: (doc) => {
       finishLayoutAnimation?.()
+      const state = get()
+      const pages = doc.pages.map(({ id, name }) => ({ id, name }))
+      // Someone may have deleted the page this user was on.
+      const active = pages.some((p) => p.id === state.activePageId) ? state.activePageId : pages[0].id
+      const parked: Record<string, ParkedPage> = {}
+      for (const page of doc.pages) {
+        if (page.id === active) continue
+        const existing = state.parked[page.id]
+        // Other pages aren't on screen, so they take the room's version as-is, keeping local history.
+        parked[page.id] = { nodes: page.nodes, edges: page.edges, past: existing?.past ?? [], future: existing?.future ?? [] }
+      }
+      const live = doc.pages.find((page) => page.id === active)!
+      const onScreen = active === state.activePageId ? mergeRemote(state, live) : { nodes: live.nodes, edges: live.edges }
       // Not an undo step: Ctrl+Z should undo your own edits, not someone else's.
-      set({ ...mergeRemote(get(), doc), name: doc.name || DEFAULT_NAME })
+      set({
+        name: doc.name || DEFAULT_NAME,
+        pages,
+        activePageId: active,
+        parked,
+        ...onScreen,
+        ...(active === state.activePageId ? {} : { past: [], future: [], ...clearedUiState }),
+      })
     },
 
     setPresence: (patch) => set({ presence: { ...get().presence, ...patch } }),
 
-    newDiagram: () =>
-      set({ ...record(), nodes: [], edges: [], editingId: null, name: DEFAULT_NAME, tool: SELECT_TOOL }),
-
-    loadDiagram: ({ nodes, edges, name }) => {
+    newDiagram: () => {
+      const page: PageTab = { id: newId('p'), name: 'Page 1' }
       finishLayoutAnimation?.()
       set({
+        name: DEFAULT_NAME,
+        pages: [page],
+        activePageId: page.id,
+        parked: {},
+        ...EMPTY_PAGE,
+        ...clearedUiState,
+      })
+    },
+
+    loadDiagram: ({ pages, name }) => {
+      finishLayoutAnimation?.()
+      const [first, ...rest] = pages
+      const parked: Record<string, ParkedPage> = {}
+      for (const page of rest) parked[page.id] = { nodes: sortNodes(page.nodes), edges: page.edges, past: [], future: [] }
+      set({
         name: name || DEFAULT_NAME,
-        nodes: sortNodes(nodes),
-        edges,
+        pages: pages.map(({ id, name: pageName }) => ({ id, name: pageName })),
+        activePageId: first.id,
+        parked,
+        nodes: sortNodes(first.nodes),
+        edges: first.edges,
         past: [],
         future: [],
-        editingId: null,
-        tool: SELECT_TOOL,
-        quickAdd: null,
+        ...clearedUiState,
       })
     },
   }

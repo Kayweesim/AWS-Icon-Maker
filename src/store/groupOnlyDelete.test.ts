@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { absoluteRects } from '../layout/__fixtures__/assertions'
 import type { AppEdge, AppNode } from '../types'
+import { newPage } from '../lib/persistence'
 import { groupOnlySelection, useDiagramStore } from './diagramStore'
 
 const icon = (id: string, parentId: string, x: number, y: number): AppNode => ({
@@ -33,7 +34,7 @@ const select = (ids: string[]) =>
   useDiagramStore.setState({ nodes: store().nodes.map((n) => ({ ...n, selected: ids.includes(n.id) })) })
 
 describe('deleting groups', () => {
-  beforeEach(() => store().loadDiagram({ nodes, edges }))
+  beforeEach(() => store().loadDiagram({ pages: [newPage('Page 1', { nodes, edges })] }))
 
   it('deletes a group with everything inside by default', () => {
     select(['cloud'])

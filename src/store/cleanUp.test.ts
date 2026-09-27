@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { messyEdges, messyNodes } from '../layout/__fixtures__/messy'
 import { autoArrange } from '../layout/autoArrange'
 import { tidy } from '../layout/tidy'
+import { newPage } from '../lib/persistence'
 import { useDiagramStore } from './diagramStore'
 
 describe('applyLayout', () => {
-  beforeEach(() => useDiagramStore.getState().loadDiagram({ nodes: messyNodes, edges: messyEdges }))
+  beforeEach(() => useDiagramStore.getState().loadDiagram({ pages: [newPage('Page 1', { nodes: messyNodes, edges: messyEdges })] }))
 
   it('makes Tidy a single undo step that restores the previous layout exactly', () => {
     const before = useDiagramStore.getState()

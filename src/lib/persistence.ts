@@ -1,24 +1,36 @@
 import { GROUP_STYLES, type GroupType } from '../data/groups'
 import { parseHandle } from '../layout/handles'
+import { newId } from './ids'
 import { DEFAULT_EDGE_DATA } from '../store/diagramStore'
-import type { AppEdge, AppNode, AwsEdgeData, EdgeArrows, EdgePathType } from '../types'
+import type { AppEdge, AppNode, AwsEdgeData, DiagramPage, EdgeArrows, EdgePathType } from '../types'
 
 const APP_ID = 'aws-diagram-studio'
-const FILE_VERSION = 1
+/** 2 added pages. Version 1 files (a bare nodes/edges pair) still open, as a single page. */
+const FILE_VERSION = 2
 const AUTOSAVE_KEY = `${APP_ID}:autosave`
 
-export type Diagram = { name: string; nodes: AppNode[]; edges: AppEdge[] }
+export type Diagram = { name: string; pages: Page[] }
 
 export type DiagramFile = Diagram & { app: typeof APP_ID; version: number }
 
-export function toFile({ name, nodes, edges }: Diagram): DiagramFile {
+export type Page = DiagramPage
+
+export const DEFAULT_PAGE_NAME = 'Page 1'
+
+export const newPage = (name = DEFAULT_PAGE_NAME, content?: Omit<Page, 'id' | 'name'>): Page => ({
+  id: newId('p'),
+  name,
+  nodes: content?.nodes ?? [],
+  edges: content?.edges ?? [],
+})
+
+/** Strips transient UI state (selection, drag, measurements) from a page. */
+export function toPage({ id, name, nodes, edges }: Page): Page {
   return {
-    app: APP_ID,
-    version: FILE_VERSION,
+    id,
     name,
-    // Only persist what defines the diagram, not transient UI state.
-    nodes: nodes.map(({ id, type, position, data, parentId, width, height }) => ({
-      id,
+    nodes: nodes.map(({ id: nodeId, type, position, data, parentId, width, height }) => ({
+      id: nodeId,
       type,
       position,
       data,
@@ -26,8 +38,8 @@ export function toFile({ name, nodes, edges }: Diagram): DiagramFile {
       ...(width !== undefined && { width }),
       ...(height !== undefined && { height }),
     })) as AppNode[],
-    edges: edges.map(({ id, type, source, target, sourceHandle, targetHandle, data }) => ({
-      id,
+    edges: edges.map(({ id: edgeId, type, source, target, sourceHandle, targetHandle, data }) => ({
+      id: edgeId,
       type,
       source,
       target,
@@ -36,6 +48,10 @@ export function toFile({ name, nodes, edges }: Diagram): DiagramFile {
       data,
     })),
   }
+}
+
+export function toFile({ name, pages }: Diagram): DiagramFile {
+  return { app: APP_ID, version: FILE_VERSION, name, pages: pages.map(toPage) }
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -118,9 +134,8 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
   }
 }
 
-/** Validates untrusted JSON (a user's file or localStorage) and returns a clean diagram. */
-export function parseDiagram(input: unknown): Diagram {
-  if (!isObject(input)) throw new Error('This is not a diagram file')
+/** Validates one untrusted page and returns clean, self-consistent nodes and edges. */
+function parsePage(input: Record<string, unknown>, fallbackName: string): Page {
   if (!Array.isArray(input.nodes) || !Array.isArray(input.edges)) {
     throw new Error('The file is missing nodes or edges')
   }
@@ -139,7 +154,34 @@ export function parseDiagram(input: unknown): Diagram {
 
   const edges = input.edges.map((e) => parseEdge(e, ids)).filter((e): e is AppEdge => e !== null)
 
-  return { name: str(input.name, 'Untitled diagram') || 'Untitled diagram', nodes: cleanNodes, edges }
+  return {
+    id: typeof input.id === 'string' && input.id ? input.id : newId('p'),
+    name: str(input.name, fallbackName) || fallbackName,
+    nodes: cleanNodes,
+    edges,
+  }
+}
+
+/** Validates untrusted JSON (a user's file, localStorage or a room) and returns a clean diagram. */
+export function parseDiagram(input: unknown): Diagram {
+  if (!isObject(input)) throw new Error('This is not a diagram file')
+  const name = str(input.name, 'Untitled diagram') || 'Untitled diagram'
+
+  // A version 1 file has no pages: its nodes and edges become the first page.
+  const raw = Array.isArray(input.pages) ? input.pages : [input]
+  if (raw.length === 0) throw new Error('The file has no pages')
+
+  const seen = new Set<string>()
+  const pages = raw.map((page, index) => {
+    if (!isObject(page)) throw new Error(`Page ${index + 1} is not readable`)
+    const parsed = parsePage(page, `Page ${index + 1}`)
+    // Duplicate ids would make two tabs impossible to tell apart.
+    const id = seen.has(parsed.id) ? newId('p') : parsed.id
+    seen.add(id)
+    return { ...parsed, id }
+  })
+
+  return { name, pages }
 }
 
 export function saveAutosave(diagram: Diagram) {

@@ -4,7 +4,8 @@ import { useDiagramStore } from '../../store/diagramStore'
 /** The other people in the room, drawn in canvas coordinates so they track pan and zoom. */
 export function Cursors() {
   const others = useDiagramStore((s) => s.liveblocks.others)
-  const visible = others.filter((other) => other.presence.cursor)
+  const activePageId = useDiagramStore((s) => s.activePageId)
+  const visible = others.filter((other) => other.presence.cursor && other.presence.pageId === activePageId)
   if (visible.length === 0) return null
 
   return (

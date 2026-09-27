@@ -33,3 +33,7 @@ src/data/code-mappings.json
 .env
 .env.*
 !.env.example
+
+
+# example files
+examples/

@@ -7,6 +7,8 @@ export type UserPresence = {
   colour: string
   /** Pointer position in canvas coordinates, or null when the pointer left the canvas. */
   cursor: { x: number; y: number } | null
+  /** Which page this person is looking at, so tabs can show who is where. */
+  pageId: string | null
 }
 
 declare global {

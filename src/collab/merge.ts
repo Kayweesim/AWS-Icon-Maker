@@ -1,8 +1,7 @@
 /** Folding a diagram received from the room back into the local canvas. Pure. */
 
 import { sortNodes } from '../lib/geometry'
-import type { Diagram } from '../lib/persistence'
-import type { AppEdge, AppNode } from '../types'
+import type { AppEdge, AppNode, DiagramPage } from '../types'
 
 type Local = { nodes: AppNode[]; edges: AppEdge[] }
 
@@ -12,7 +11,7 @@ const isBusy = (node: AppNode | undefined) => !!node && (node.dragging === true 
  * Remote state wins, except for what is personal to this user: selection stays put, and a node
  * being dragged or resized right now keeps its local geometry until the gesture ends.
  */
-export function mergeRemote(local: Local, remote: Diagram): Local {
+export function mergeRemote(local: Local, remote: Pick<DiagramPage, 'nodes' | 'edges'>): Local {
   const localNodes = new Map(local.nodes.map((n) => [n.id, n]))
   const localEdges = new Map(local.edges.map((e) => [e.id, e]))
 

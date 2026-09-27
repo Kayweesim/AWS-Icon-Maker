@@ -9,16 +9,11 @@
  * keeps a local publish from bouncing back as a remote change, and vice versa.
  */
 
-import { parseDiagram, toFile } from '../lib/persistence'
+import { wholeDiagram } from '../lib/document'
+import { parseDiagram } from '../lib/persistence'
 import { useDiagramStore } from '../store/diagramStore'
 import type { SharedDoc } from '../types'
 import { PUSH_DEBOUNCE_MS } from './config'
-
-/** The diagram without any transient UI state, exactly as `toFile` saves it. */
-export function projectDoc(state: SharedDoc): SharedDoc {
-  const { name, nodes, edges } = toFile(state)
-  return { name, nodes, edges }
-}
 
 export type Sync = {
   /** Publishes the current canvas immediately. Call before entering a room so it seeds storage. */
@@ -34,7 +29,7 @@ export function startSync(): Sync {
   const flush = () => {
     clearTimeout(timer)
     const state = useDiagramStore.getState()
-    const doc = projectDoc(state)
+    const doc: SharedDoc = wholeDiagram(state)
     const json = JSON.stringify(doc)
     if (json === agreed) return
     agreed = json
@@ -65,7 +60,13 @@ export function startSync(): Sync {
         receive(state.doc)
       }
     }
-    if (state.nodes !== prev.nodes || state.edges !== prev.edges || state.name !== prev.name) {
+    const changed =
+      state.nodes !== prev.nodes ||
+      state.edges !== prev.edges ||
+      state.name !== prev.name ||
+      state.pages !== prev.pages ||
+      state.parked !== prev.parked
+    if (changed) {
       clearTimeout(timer)
       timer = setTimeout(flush, PUSH_DEBOUNCE_MS)
     }

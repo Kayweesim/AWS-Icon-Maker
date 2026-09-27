@@ -38,6 +38,17 @@ The build downloads the AWS icon package from `d1.awsstatic.com` (about 14 MB, r
 the build machine needs network access. If AWS retires that URL, set `AWS_ICONS_URL` to the
 current zip in **Project → Settings → Environment Variables**.
 
+## Pages
+
+A diagram is a set of pages, like sheets in a spreadsheet. The tab strip along the bottom of the
+canvas switches between them: **+** adds a page after the current one, double-click a tab to
+rename it, and the **×** on a tab deletes that page (the last one can't be deleted). Each page has
+its own canvas and its own undo history; copy and paste carries a selection from one to another.
+
+In a room every page is shared, but which page you are looking at is personal — so two people can
+work on separate pages without getting in each other's way, and a dot on a tab shows who is there.
+Cursors only appear to people on the same page.
+
 ## Live collaboration
 
 Press **Share** in the toolbar and **Start a session**. The URL becomes `/ABCD` — a four-letter
@@ -57,7 +68,7 @@ project. Anyone who has a room code can edit that room, so treat codes like the 
 Without the variable the app runs exactly as before — offline and single-player — and the Share
 menu says so.
 
-How it works: `src/collab` projects the diagram to a `SharedDoc` (no selection or drag state),
+How it works: `src/collab` projects every page to a `SharedDoc` (no selection or drag state),
 publishes it to the room on a short debounce, and merges what arrives back into the canvas,
 keeping your own selection and any drag in progress. Someone else's edit is never an undo step of
 yours. Anything that arrives is validated with the same parser as an opened file.
@@ -151,11 +162,12 @@ src/
   layout/                 pure layout functions: tidy.ts, autoArrange.ts, config.ts
   data/                   icon manifest, code mappings, AWS group styles
   collab/                 Liveblocks room: room codes, doc sync, merge, cursors
-  lib/                    nesting geometry, clipboard, persistence, image export, highlighting
+  lib/                    nesting geometry, clipboard, persistence, pages, image export, highlighting
   hooks/                  keyboard shortcuts, autosave, file and clean-up actions, generated code
   components/
     canvas/ nodes/ edges/ React Flow canvas, icon and group nodes, AWS-style edge
     sidebar/ panel/       palette and properties panel
+    pages/                the sheet tabs under the canvas
     code/                 Export as Code panel
     toolbar/              top bar, menus, notices
 ```
@@ -194,3 +206,6 @@ Two toolchain checks run only when their tools are available:
   `foreignObject`. Use PNG for those.
 - **Opened JSON files are validated.** Icon references must point to the bundled `/aws-icons` SVGs,
   and unknown node or group types are rejected.
+- **File format.** Saved files are version 2: `{ app, version, name, pages: [{ id, name, nodes,
+  edges }] }`. Version 1 files, which had `nodes` and `edges` at the top level, still open and
+  become a single page. Image and code exports cover the page you are on, not the whole file.

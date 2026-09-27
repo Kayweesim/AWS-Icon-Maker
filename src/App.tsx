@@ -7,6 +7,7 @@ import { EmptyState } from './components/canvas/EmptyState'
 import { QuickAddPanel } from './components/canvas/QuickAddPanel'
 import { ToolHint } from './components/canvas/ToolHint'
 import { CodePanel } from './components/code/CodePanel'
+import { PageTabs } from './components/pages/PageTabs'
 import { PropertiesPanel } from './components/panel/PropertiesPanel'
 import { Sidebar } from './components/sidebar/Sidebar'
 import { NoticeToast } from './components/toolbar/NoticeToast'
@@ -33,20 +34,23 @@ function Editor() {
   return (
     <div className="flex h-full w-full overflow-hidden">
       <Sidebar />
-      <main className="relative min-w-0 flex-1">
-        <DiagramCanvas />
-        <EmptyState />
-        <Toolbar
-          actions={actions}
-          collab={collab}
-          onShowShortcuts={toggleHelp}
-          codeOpen={showCode}
-          onToggleCode={() => setShowCode((v) => !v)}
-        />
-        <ToolHint />
-        <PropertiesPanel />
-        <QuickAddPanel />
-        <NoticeToast notice={notice} onDismiss={dismissNotice} />
+      <main className="flex min-w-0 flex-1 flex-col">
+        <div className="relative min-h-0 flex-1">
+          <DiagramCanvas />
+          <EmptyState />
+          <Toolbar
+            actions={actions}
+            collab={collab}
+            onShowShortcuts={toggleHelp}
+            codeOpen={showCode}
+            onToggleCode={() => setShowCode((v) => !v)}
+          />
+          <ToolHint />
+          <PropertiesPanel />
+          <QuickAddPanel />
+          <NoticeToast notice={notice} onDismiss={dismissNotice} />
+        </div>
+        <PageTabs />
       </main>
       {showCode && <CodePanel onClose={() => setShowCode(false)} />}
       <ShortcutsDialog open={showShortcuts} onClose={closeHelp} />

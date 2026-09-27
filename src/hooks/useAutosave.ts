@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { wholeDiagram } from '../lib/document'
 import { saveAutosave } from '../lib/persistence'
 import { useDiagramStore } from '../store/diagramStore'
 
@@ -10,12 +11,17 @@ export function useAutosave() {
     let timer: ReturnType<typeof setTimeout> | undefined
     const save = () => {
       clearTimeout(timer)
-      const { name, nodes, edges } = useDiagramStore.getState()
-      saveAutosave({ name, nodes, edges })
+      saveAutosave(wholeDiagram(useDiagramStore.getState()))
     }
 
     const unsubscribe = useDiagramStore.subscribe((state, prev) => {
-      if (state.nodes === prev.nodes && state.edges === prev.edges && state.name === prev.name) return
+      const changed =
+        state.nodes !== prev.nodes ||
+        state.edges !== prev.edges ||
+        state.name !== prev.name ||
+        state.pages !== prev.pages ||
+        state.parked !== prev.parked
+      if (!changed) return
       clearTimeout(timer)
       timer = setTimeout(save, DELAY_MS)
     })

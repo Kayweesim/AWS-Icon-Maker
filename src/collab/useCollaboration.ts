@@ -33,6 +33,10 @@ export function useCollaboration() {
 
   useEffect(() => setPresence({ name, colour: presenceColour(name) }), [name, setPresence])
 
+  // Others see which page you're on, and your cursor only shows to people on the same page.
+  const activePageId = useDiagramStore((s) => s.activePageId)
+  useEffect(() => setPresence({ pageId: activePageId, cursor: null }), [activePageId, setPresence])
+
   useEffect(() => {
     if (!COLLAB_ENABLED || !code) return
     const sync = startSync()
