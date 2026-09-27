@@ -3,6 +3,7 @@ import { parseHandle } from '../layout/handles'
 import { newId } from './ids'
 import { DEFAULT_EDGE_DATA } from '../store/diagramStore'
 import type { AppEdge, AppNode, AwsEdgeData, DiagramPage, EdgeArrows, EdgePathType } from '../types'
+import { isEmbeddedImageDataUrl } from './imageDrop'
 
 const APP_ID = 'aws-diagram-studio'
 /** 2 added pages. Version 1 files (a bare nodes/edges pair) still open, as a single page. */
@@ -106,6 +107,21 @@ function parseNode(raw: unknown, index: number): AppNode {
   if (raw.type === 'text') {
     const fontSize = isNumber(data.fontSize) && data.fontSize >= 8 && data.fontSize <= 72 ? Math.round(data.fontSize) : undefined
     return { ...base, type: 'text', data: { label: str(data.label), ...(fontSize && { fontSize }) } }
+  }
+
+  if (raw.type === 'image') {
+    const src = str(data.src)
+    if (!isEmbeddedImageDataUrl(src)) throw new Error(`${where} has an invalid embedded image`)
+    if (!isNumber(raw.width) || !isNumber(raw.height) || raw.width < 1 || raw.height < 1 || raw.width > 4096 || raw.height > 4096) {
+      throw new Error(`${where} has invalid image dimensions`)
+    }
+    return {
+      ...base,
+      type: 'image',
+      width: raw.width,
+      height: raw.height,
+      data: { label: str(data.label, 'Image') || 'Image', src },
+    }
   }
 
   throw new Error(`${where} has an unsupported type`)

@@ -65,12 +65,13 @@ export function ToolHint() {
       <span>
         {sourceLabel ? (
           <>
-            Click a service to connect from <strong className="font-medium">{sourceLabel}</strong>
+            Click a node to connect from <strong className="font-medium">{sourceLabel}</strong>
             <span className="text-zinc-400"> · Shift-click to keep chaining</span>
           </>
         ) : (
-          'Click the service the arrow starts from'
+          'Click the node the arrow starts from'
         )}
+        <span className="text-zinc-400"> · Tab / Shift+Tab cycles styles</span>
       </span>
     </Pill>
   )

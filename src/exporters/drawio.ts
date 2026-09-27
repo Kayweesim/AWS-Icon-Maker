@@ -8,7 +8,7 @@ import { LABEL_WIDTH, TEXT_FONT_SIZE } from '../layout/config'
 import { parseHandle } from '../layout/handles'
 import { buildTree } from '../layout/shared'
 import { iconNodeWidth, iconSizeOf, layoutSize } from '../layout/sizes'
-import type { AppEdge, AppNode, IconNode } from '../types'
+import type { AppEdge, AppNode, IconNode, ImageNode } from '../types'
 
 export type DrawioInput = { name: string; nodes: AppNode[]; edges: AppEdge[] }
 
@@ -83,6 +83,12 @@ function iconCellStyle(node: IconNode, images: IconImages) {
   return style({ ...label, shape: 'image', aspect: 'fixed', imageAspect: 0, labelBackgroundColor: 'none', image: `data:image/svg+xml,${image}` })
 }
 
+function imageCellStyle(node: ImageNode) {
+  // draw.io styles use semicolons as separators, so use its data-URI form without `;base64`.
+  const image = node.data.src.replace(';base64,', ',')
+  return style({ shape: 'image', aspect: 'fixed', imageAspect: 0, image })
+}
+
 /** Where an edge attaches: a point along a side, and for icons the bottom sits below the label. */
 function attachment(prefix: 'exit' | 'entry', node: AppNode, handle: string | null | undefined) {
   const point = parseHandle(handle)
@@ -131,7 +137,7 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
     const x = node.position?.x ?? 0
     const y = node.position?.y ?? 0
     const size = layoutSize(node)
-    const label = attr(htmlLabel(node.data?.label ?? ''))
+    const label = attr(htmlLabel(node.type === 'image' ? '' : (node.data?.label ?? '')))
     const open = `<mxCell id="${attr(cellId(node.id))}" value="${label}"`
 
     if (node.type === 'icon') {
@@ -139,6 +145,8 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
       // The node box is at least label-wide with the icon centred; draw.io's shape is just the icon.
       const iconX = x + (iconNodeWidth(iconSize) - iconSize) / 2
       cells.push(`${open} style="${attr(iconCellStyle(node, images))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(iconX, y, iconSize, iconSize)}`, '</mxCell>')
+    } else if (node.type === 'image') {
+      cells.push(`${open} style="${attr(imageCellStyle(node))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x, y, size.width, size.height)}`, '</mxCell>')
     } else if (node.type === 'text') {
       const fontSize = node.data?.fontSize ?? TEXT_FONT_SIZE
       const textStyle = style({ text: undefined, html: 1, whiteSpace: 'wrap', align: 'left', verticalAlign: 'top', fontFamily: 'Arial', fontSize, spacing: 2 })

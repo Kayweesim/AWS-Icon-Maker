@@ -9,11 +9,20 @@ export type UserPresence = {
   cursor: { x: number; y: number } | null
   /** Which page this person is looking at, so tabs can show who is where. */
   pageId: string | null
+  /** Selected nodes, broadcast separately from the saved/shared diagram. Optional for older clients. */
+  selectedNodeIds?: string[]
 }
+
+/** The Zustand middleware maps the store's `presence` field into this room-presence wrapper. */
+export type RoomPresence = {
+  presence: UserPresence
+}
+
+export const presenceOf = (roomPresence: RoomPresence) => roomPresence.presence
 
 declare global {
   interface Liveblocks {
-    Presence: UserPresence
+    Presence: RoomPresence
   }
 }
 

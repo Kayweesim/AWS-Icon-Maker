@@ -53,8 +53,9 @@ Cursors only appear to people on the same page.
 
 Press **Share** in the toolbar and **Start a session**. The URL becomes `/ABCD` — a four-letter
 room code — and anyone who opens that link edits the same canvas: nodes, arrows, groups, the
-diagram name, imports, Tidy and Auto-arrange all sync, and you see each other's cursors. Leaving a
-session keeps a local copy of the diagram.
+diagram name, imports, Tidy and Auto-arrange all sync. You see each other's cursors, plus coloured
+outlines and avatar badges on the nodes other people have selected. Leaving a session keeps a local
+copy of the diagram.
 
 Syncing runs on [Liveblocks](https://liveblocks.io), which needs one key:
 
@@ -77,7 +78,8 @@ yours. Anything that arrives is validated with the same parser as an opened file
 
 - **Icon palette:** 304 service icons and 466 resource icons in 24 categories, with search and
   collapsible sections. Groups sit at the top of the palette.
-- **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Hold
+- **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Drop a PNG,
+  JPEG, GIF, WebP or AVIF file onto the canvas to add it to the diagram. Hold
   <kbd>Shift</kbd> while dragging a selection box to pick only services, text and arrows, and skip
   the groups around them, so you can move services independently of their VPC or Region.
 - **Quick add:** press <kbd>S</kbd> to open a search panel at your cursor. Type (for example
@@ -88,7 +90,8 @@ yours. Anything that arrives is validated with the same parser as an opened file
 - **Arrows:** a searchable Arrows palette at the top of the sidebar has presets for common
   architecture connections: data flow, async/event (dashed), two-way, replication/backup, network
   link and monitoring/logs. Click a preset, then click two services. Or select a service, press
-  <kbd>A</kbd> and click another (Shift-click keeps chaining). You can also drag from a side
+  <kbd>A</kbd> and click another; <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> cycle the arrow
+  style while drawing (Shift-click keeps chaining). You can also drag from a side
   handle. Groups have several connection points along each side (more on bigger groups), so an
   arrow can meet a VPC or Region where it should rather than only at the middle of a side; a point
   you pick by hand survives Tidy and Auto-arrange as long as that side still faces the other node.
@@ -107,8 +110,9 @@ yours. Anything that arrives is validated with the same parser as an opened file
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
   delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
 - **Files:** export PNG (2×), SVG or a draw.io file, save and open JSON, and autosave to
-  localStorage. The `.drawio` export opens in draw.io / diagrams.net with native AWS group
-  containers, the official icons embedded as images, and editable arrows and labels.
+  localStorage. Dropped images are embedded in the diagram so saved files stay self-contained.
+  The `.drawio` export opens in draw.io / diagrams.net with native AWS group containers, embedded
+  icons and images, and editable arrows and labels.
 - **Properties panel:** appears when something is selected.
 - **Keyboard shortcuts:** press <kbd>?</kbd> in the app for the full list.
 
@@ -161,8 +165,8 @@ src/
   exporters/              pure diagram -> code functions: mermaid.ts, python.ts, terraform.ts
   layout/                 pure layout functions: tidy.ts, autoArrange.ts, config.ts
   data/                   icon manifest, code mappings, AWS group styles
-  collab/                 Liveblocks room: room codes, doc sync, merge, cursors
-  lib/                    nesting geometry, clipboard, persistence, pages, image export, highlighting
+  collab/                 Liveblocks room: room codes, doc sync, merge, cursors and selection presence
+  lib/                    nesting geometry, clipboard, persistence, pages, image drop and export
   hooks/                  keyboard shortcuts, autosave, file and clean-up actions, generated code
   components/
     canvas/ nodes/ edges/ React Flow canvas, icon and group nodes, AWS-style edge
@@ -204,8 +208,9 @@ Two toolchain checks run only when their tools are available:
 - **SVG image export** embeds the rendered diagram in an SVG `foreignObject`. It displays
   correctly in browsers, but some vector editors (Illustrator, Inkscape) don't render
   `foreignObject`. Use PNG for those.
-- **Opened JSON files are validated.** Icon references must point to the bundled `/aws-icons` SVGs,
-  and unknown node or group types are rejected.
+- **Opened JSON files are validated.** AWS icon references must point to the bundled `/aws-icons`
+  SVGs, custom images must be embedded supported raster data, and unknown node or group types are
+  rejected.
 - **File format.** Saved files are version 2: `{ app, version, name, pages: [{ id, name, nodes,
   edges }] }`. Version 1 files, which had `nodes` and `edges` at the top level, still open and
   become a single page. Image and code exports cover the page you are on, not the whole file.

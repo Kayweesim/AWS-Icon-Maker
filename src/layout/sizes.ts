@@ -83,6 +83,12 @@ export function layoutSize(node: AppNode, iconSize?: number): { width: number; h
     const estimate = node.measured?.width && node.measured?.height ? undefined : estimateTextSize(node.data?.label ?? '', node.data?.fontSize)
     return { width: node.measured?.width ?? estimate!.width, height: node.measured?.height ?? estimate!.height }
   }
+  if (node.type === 'image') {
+    return {
+      width: node.width ?? node.measured?.width ?? 160,
+      height: node.height ?? node.measured?.height ?? 160,
+    }
+  }
   const style = groupStyle(node.data?.groupType)
   return {
     width: node.width ?? node.measured?.width ?? style.width,

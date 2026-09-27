@@ -1,7 +1,8 @@
 import { Check, Copy, LogOut, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { presenceOf } from '../../collab/client'
 import type { Collaboration } from '../../collab/useCollaboration'
-import { presenceColour, ROOM_CODE_LENGTH, roomPath } from '../../collab/room'
+import { presenceColour, presenceInitials, ROOM_CODE_LENGTH, roomPath } from '../../collab/room'
 import { Menu } from './Menu'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -12,22 +13,14 @@ const STATUS_LABEL: Record<string, string> = {
   disconnected: 'Offline',
 }
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? '')
-    .join('') || '?'
-
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, colour }: { name: string; colour?: string }) {
   return (
     <span
       title={name}
       className="-ml-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[10px] font-semibold text-white first:ml-0"
-      style={{ backgroundColor: presenceColour(name) }}
+      style={{ backgroundColor: colour || presenceColour(name) }}
     >
-      {initials(name)}
+      {presenceInitials(name)}
     </span>
   )
 }
@@ -94,6 +87,7 @@ function JoinForm({ onJoin }: { onJoin: (code: string) => boolean }) {
 export function ShareMenu({ collab }: { collab: Collaboration }) {
   const { enabled, code, status, others, name, rename } = collab
   const live = code !== null && status === 'connected'
+  const people = others.map((other) => ({ connectionId: other.connectionId, ...presenceOf(other.presence) }))
 
   return (
     <Menu
@@ -114,12 +108,12 @@ export function ShareMenu({ collab }: { collab: Collaboration }) {
                 title={STATUS_LABEL[status] ?? status}
               />
               <span className="tracking-widest">{code}</span>
-              {others.length > 0 && (
+              {people.length > 0 && (
                 <span className="ml-1 flex">
-                  {others.slice(0, 3).map((other) => (
-                    <Avatar key={other.connectionId} name={other.presence.name || 'Guest'} />
+                  {people.slice(0, 3).map((person) => (
+                    <Avatar key={person.connectionId} name={person.name || 'Guest'} colour={person.colour} />
                   ))}
-                  {others.length > 3 && <span className="ml-1 text-[11px] text-zinc-500">+{others.length - 3}</span>}
+                  {people.length > 3 && <span className="ml-1 text-[11px] text-zinc-500">+{people.length - 3}</span>}
                 </span>
               )}
             </>
@@ -146,7 +140,7 @@ export function ShareMenu({ collab }: { collab: Collaboration }) {
                   Room <span className="tracking-widest">{code}</span>
                 </div>
                 <div className="text-[11.5px] text-zinc-400">
-                  {STATUS_LABEL[status] ?? status} · {others.length === 0 ? 'only you' : `${others.length + 1} people`}
+                  {STATUS_LABEL[status] ?? status} · {people.length === 0 ? 'only you' : `${people.length + 1} people`}
                 </div>
               </div>
               <CopyLink code={code} />
@@ -159,12 +153,12 @@ export function ShareMenu({ collab }: { collab: Collaboration }) {
                   className="min-w-0 flex-1 rounded-md border border-zinc-200 px-2 py-1 text-[13px] text-zinc-800 outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </label>
-              {others.length > 0 && (
+              {people.length > 0 && (
                 <ul className="flex flex-col gap-1">
-                  {others.map((other) => (
-                    <li key={other.connectionId} className="flex items-center gap-2 text-[12.5px] text-zinc-600">
-                      <Avatar name={other.presence.name || 'Guest'} />
-                      {other.presence.name || 'Guest'}
+                  {people.map((person) => (
+                    <li key={person.connectionId} className="flex items-center gap-2 text-[12.5px] text-zinc-600">
+                      <Avatar name={person.name || 'Guest'} colour={person.colour} />
+                      {person.name || 'Guest'}
                     </li>
                   ))}
                 </ul>

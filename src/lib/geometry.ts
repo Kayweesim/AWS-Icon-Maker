@@ -46,7 +46,7 @@ const contains = (outer: Rect, inner: Rect) =>
   inner.y + inner.height <= outer.y + outer.height
 
 /**
- * The innermost group that should contain `rect`. Icons only need their centre inside
+ * The innermost group that should contain `rect`. Leaf nodes only need their centre inside
  * a group; groups must fit entirely inside their parent.
  */
 export function findParentGroup(

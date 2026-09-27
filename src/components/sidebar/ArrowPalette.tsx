@@ -57,7 +57,7 @@ export function ArrowPalette({ presets, open, onToggle }: Props) {
           <p className="px-1.5 pt-2 text-[11px] leading-snug text-zinc-400">
             {hasSelectedEdges
               ? 'Click a style to apply it to the selected arrows.'
-              : 'Click a style, then click two services. Or select a service and press A.'}
+              : 'Click a style, then click two nodes. Or select a node and press A.'}
           </p>
         </div>
       )}

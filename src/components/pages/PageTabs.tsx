@@ -1,5 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { presenceOf } from '../../collab/client'
 import { presenceColour } from '../../collab/room'
 import { useDiagramStore } from '../../store/diagramStore'
 
@@ -8,7 +9,7 @@ function useOthersByPage(): Record<string, string[]> {
   const others = useDiagramStore((s) => s.liveblocks.others)
   const byPage: Record<string, string[]> = {}
   for (const other of others) {
-    const { pageId, name } = other.presence
+    const { pageId, name } = presenceOf(other.presence)
     if (!pageId) continue
     ;(byPage[pageId] ??= []).push(name || 'Guest')
   }

@@ -10,7 +10,7 @@ import { liveblocks, type WithLiveblocks } from '@liveblocks/zustand'
 import { create, type StateCreator } from 'zustand'
 import { collabClient, type UserPresence } from '../collab/client'
 import { mergeRemote } from '../collab/merge'
-import { arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } from '../data/arrows'
+import { ARROW_PRESETS, arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } from '../data/arrows'
 import { groupStyle, type GroupType } from '../data/groups'
 import { applyLayoutResult } from '../layout/apply'
 import { ICON_SIZE, LAYOUT_ANIMATION_MS, TEXT_FONT_SIZE } from '../layout/config'
@@ -22,6 +22,7 @@ import { cloneClipboard, copySelection, selectionWithDescendants, type Clipboard
 import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSize, sortNodes } from '../lib/geometry'
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
+import type { PreparedImage } from '../lib/imageDrop'
 import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
 import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc } from '../types'
 
@@ -62,13 +63,14 @@ export type DiagramState = {
   parked: Record<string, ParkedPage>
   /** The diagram as shared with a collaboration room. Synced by Liveblocks; see /collab. */
   doc: SharedDoc
-  /** What this user broadcasts to the room: name, colour and cursor. */
+  /** What this user broadcasts to the room: identity, cursor and selected nodes. */
   presence: UserPresence
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
   onConnect: (connection: Connection) => void
   addIconNode: (icon: { iconId: string; name: string; path: string }, centre: XYPosition) => void
+  addImageNode: (image: PreparedImage, centre: XYPosition) => void
   addGroupNode: (groupType: GroupType, position: XYPosition) => void
   /** Adds a text box at a point: with the given text, or empty and ready to type into. */
   addTextNode: (position: XYPosition, label?: string) => void
@@ -86,6 +88,8 @@ export type DiagramState = {
 
   /** Arrow mode, starting from the selected node if exactly one is selected. */
   startArrowMode: (preset?: ArrowPresetId) => void
+  /** Cycles the style of the arrow currently being drawn, preserving its source node. */
+  cycleArrowPreset: (step: -1 | 1) => void
   startTextMode: () => void
   cancelTool: () => void
   openQuickAdd: (target: QuickAddTarget) => void
@@ -215,6 +219,15 @@ const firstPage: PageTab = { id: newId('p'), name: 'Page 1' }
 /** Reset when the canvas is swapped out from under the user. */
 const clearedUiState = { editingId: null, tool: SELECT_TOOL, quickAdd: null, groupOnlyId: null } as const
 
+/**
+ * Opening a page also tells the room where this user went, so tabs show who is where and cursors
+ * from another sheet stop being drawn. Keeping it here means presence can never drift.
+ */
+const onPage = (id: string, presence: UserPresence) => ({
+  activePageId: id,
+  presence: { ...presence, pageId: id, cursor: null, selectedNodeIds: [] },
+})
+
 const currentPage = (state: Pick<DiagramState, 'nodes' | 'edges' | 'past' | 'future'>): ParkedPage => ({
   nodes: state.nodes,
   edges: state.edges,
@@ -255,7 +268,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     activePageId: firstPage.id,
     parked: {},
     doc: { name: DEFAULT_NAME, pages: [{ ...firstPage, nodes: [], edges: [] }] },
-    presence: { name: '', colour: '', cursor: null, pageId: firstPage.id },
+    presence: { name: '', colour: '', cursor: null, pageId: firstPage.id, selectedNodeIds: [] },
 
     onNodesChange: (changes) => {
       // Removals are handled by deleteSelection so groups take their contents with them.
@@ -289,6 +302,24 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
           },
           selected: true,
           data: { label: icon.name, iconPath: icon.path, iconId: icon.iconId, iconSize: ICON_SIZE },
+        }),
+        edges: deselectAll(get().edges),
+      }),
+
+    addImageNode: (image, centre) =>
+      set({
+        ...record(),
+        nodes: insertNode(get().nodes, {
+          id: newId('i'),
+          type: 'image',
+          position: {
+            x: snapToGrid(centre.x - image.width / 2),
+            y: snapToGrid(centre.y - image.height / 2),
+          },
+          width: image.width,
+          height: image.height,
+          selected: true,
+          data: { label: image.name, src: image.src },
         }),
         edges: deselectAll(get().edges),
       }),
@@ -403,6 +434,15 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         arrowPreset: chosen,
         editingId: null,
       })
+    },
+
+    cycleArrowPreset: (step) => {
+      const { tool } = get()
+      if (tool.kind !== 'arrow') return
+      const currentIndex = ARROW_PRESETS.findIndex((preset) => preset.id === tool.preset)
+      const nextIndex = currentIndex < 0 ? 0 : (currentIndex + step + ARROW_PRESETS.length) % ARROW_PRESETS.length
+      const preset = ARROW_PRESETS[nextIndex].id
+      set({ tool: { ...tool, preset }, arrowPreset: preset })
     },
 
     startTextMode: () => set({ tool: { kind: 'text' }, editingId: null }),
@@ -619,7 +659,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       set({
         pages: [...pages.slice(0, at + 1), page, ...pages.slice(at + 1)],
         parked: { ...get().parked, [activePageId]: currentPage(get()) },
-        activePageId: page.id,
+        ...onPage(page.id, get().presence),
         ...EMPTY_PAGE,
         ...clearedUiState,
       })
@@ -640,7 +680,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       set({
         pages: pages.filter((p) => p.id !== id),
         parked: remaining,
-        activePageId: next.id,
+        ...onPage(next.id, get().presence),
         ...opened,
         ...clearedUiState,
       })
@@ -658,7 +698,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       const opened = parked[id] ?? EMPTY_PAGE
       const rest = { ...parked, [activePageId]: currentPage(get()) }
       delete rest[id]
-      set({ activePageId: id, parked: rest, ...opened, ...clearedUiState })
+      set({ ...onPage(id, get().presence), parked: rest, ...opened, ...clearedUiState })
     },
 
     publishDoc: (doc) => set({ doc }),
@@ -682,7 +722,9 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       set({
         name: doc.name || DEFAULT_NAME,
         pages,
-        activePageId: active,
+        // Only a page that was deleted under this user counts as moving them; otherwise their
+        // own cursor and selection presence must survive someone else's edit.
+        ...(active === state.activePageId ? { activePageId: active } : onPage(active, state.presence)),
         parked,
         ...onScreen,
         ...(active === state.activePageId ? {} : { past: [], future: [], ...clearedUiState }),
@@ -697,7 +739,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       set({
         name: DEFAULT_NAME,
         pages: [page],
-        activePageId: page.id,
+        ...onPage(page.id, get().presence),
         parked: {},
         ...EMPTY_PAGE,
         ...clearedUiState,
@@ -712,7 +754,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       set({
         name: name || DEFAULT_NAME,
         pages: pages.map(({ id, name: pageName }) => ({ id, name: pageName })),
-        activePageId: first.id,
+        ...onPage(first.id, get().presence),
         parked,
         nodes: sortNodes(first.nodes),
         edges: first.edges,
