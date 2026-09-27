@@ -66,7 +66,8 @@ yours. Anything that arrives is validated with the same parser as an opened file
 
 - **Icon palette:** 304 service icons and 466 resource icons in 24 categories, with search and
   collapsible sections. Groups sit at the top of the palette.
-- **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Hold
+- **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Drop a PNG,
+  JPEG, GIF, WebP or AVIF file onto the canvas to add it to the diagram. Hold
   <kbd>Shift</kbd> while dragging a selection box to pick only services, text and arrows, and skip
   the groups around them, so you can move services independently of their VPC or Region.
 - **Quick add:** press <kbd>S</kbd> to open a search panel at your cursor. Type (for example
@@ -96,8 +97,9 @@ yours. Anything that arrives is validated with the same parser as an opened file
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
   delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
 - **Files:** export PNG (2×), SVG or a draw.io file, save and open JSON, and autosave to
-  localStorage. The `.drawio` export opens in draw.io / diagrams.net with native AWS group
-  containers, the official icons embedded as images, and editable arrows and labels.
+  localStorage. Dropped images are embedded in the diagram so saved files stay self-contained.
+  The `.drawio` export opens in draw.io / diagrams.net with native AWS group containers, embedded
+  icons and images, and editable arrows and labels.
 - **Properties panel:** appears when something is selected.
 - **Keyboard shortcuts:** press <kbd>?</kbd> in the app for the full list.
 
@@ -192,5 +194,6 @@ Two toolchain checks run only when their tools are available:
 - **SVG image export** embeds the rendered diagram in an SVG `foreignObject`. It displays
   correctly in browsers, but some vector editors (Illustrator, Inkscape) don't render
   `foreignObject`. Use PNG for those.
-- **Opened JSON files are validated.** Icon references must point to the bundled `/aws-icons` SVGs,
-  and unknown node or group types are rejected.
+- **Opened JSON files are validated.** AWS icon references must point to the bundled `/aws-icons`
+  SVGs, custom images must be embedded supported raster data, and unknown node or group types are
+  rejected.

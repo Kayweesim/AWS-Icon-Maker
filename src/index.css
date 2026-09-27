@@ -99,7 +99,8 @@ body {
   cursor: crosshair !important;
 }
 
-.tool-arrow .react-flow__node-icon:hover img {
+.tool-arrow .react-flow__node-icon:hover img,
+.tool-arrow .react-flow__node-image:hover img {
   outline: 2px solid var(--color-blue-500);
   outline-offset: 3px;
   border-radius: 3px;

@@ -22,6 +22,7 @@ import { cloneClipboard, copySelection, selectionWithDescendants, type Clipboard
 import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSize, sortNodes } from '../lib/geometry'
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
+import type { PreparedImage } from '../lib/imageDrop'
 import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type SharedDoc } from '../types'
 
 /** What clicking on the canvas does. */
@@ -62,6 +63,7 @@ export type DiagramState = {
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
   onConnect: (connection: Connection) => void
   addIconNode: (icon: { iconId: string; name: string; path: string }, centre: XYPosition) => void
+  addImageNode: (image: PreparedImage, centre: XYPosition) => void
   addGroupNode: (groupType: GroupType, position: XYPosition) => void
   /** Adds a text box at a point: with the given text, or empty and ready to type into. */
   addTextNode: (position: XYPosition, label?: string) => void
@@ -259,6 +261,24 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
           },
           selected: true,
           data: { label: icon.name, iconPath: icon.path, iconId: icon.iconId, iconSize: ICON_SIZE },
+        }),
+        edges: deselectAll(get().edges),
+      }),
+
+    addImageNode: (image, centre) =>
+      set({
+        ...record(),
+        nodes: insertNode(get().nodes, {
+          id: newId('i'),
+          type: 'image',
+          position: {
+            x: snapToGrid(centre.x - image.width / 2),
+            y: snapToGrid(centre.y - image.height / 2),
+          },
+          width: image.width,
+          height: image.height,
+          selected: true,
+          data: { label: image.name, src: image.src },
         }),
         edges: deselectAll(get().edges),
       }),
