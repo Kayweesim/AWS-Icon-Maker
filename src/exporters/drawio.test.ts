@@ -73,6 +73,13 @@ describe('exportDrawio', () => {
     expect(both).toContain('endArrow=open')
     expect(both).toContain('exitX=1;exitY=0.5')
     expect(both).toContain('entryX=0;entryY=0.5')
+    const point: AppEdge[] = [
+      { id: 'point', type: 'aws', source: 'vpc', target: 'rds', sourceHandle: 'right-25', targetHandle: 'top-75', data: { label: '', dashed: false, pathType: 'step', arrows: 'end' } },
+    ]
+    // A hand-picked connection point keeps its exact place on the side.
+    expect(cell(exportDrawio({ name: 'x', nodes: sampleNodes, edges: point }), 'point')).toContain('exitX=1;exitY=0.25')
+    expect(cell(exportDrawio({ name: 'x', nodes: sampleNodes, edges: point }), 'point')).toContain('entryX=0.75;entryY=0')
+
     const down = cell(out, 'down')
     expect(down).toContain('endArrow=none')
     expect(down).toContain('edgeStyle=orthogonalEdgeStyle')

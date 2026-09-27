@@ -5,6 +5,7 @@
 // file works offline.
 import { groupStyle, type GroupType } from '../data/groups'
 import { LABEL_WIDTH, TEXT_FONT_SIZE } from '../layout/config'
+import { parseHandle } from '../layout/handles'
 import { buildTree } from '../layout/shared'
 import { iconNodeWidth, iconSizeOf, layoutSize } from '../layout/sizes'
 import type { AppEdge, AppNode, IconNode } from '../types'
@@ -82,15 +83,14 @@ function iconCellStyle(node: IconNode, images: IconImages) {
   return style({ ...label, shape: 'image', aspect: 'fixed', imageAspect: 0, labelBackgroundColor: 'none', image: `data:image/svg+xml,${image}` })
 }
 
-type Side = 'top' | 'right' | 'bottom' | 'left'
-const SIDE_POINTS: Record<Side, [number, number]> = { top: [0.5, 0], right: [1, 0.5], bottom: [0.5, 1], left: [0, 0.5] }
-const isSide = (value: unknown): value is Side => typeof value === 'string' && value in SIDE_POINTS
-
-/** Where an edge attaches: a side of the shape, and for icons the bottom sits below the label. */
+/** Where an edge attaches: a point along a side, and for icons the bottom sits below the label. */
 function attachment(prefix: 'exit' | 'entry', node: AppNode, handle: string | null | undefined) {
-  if (!isSide(handle)) return {}
-  const [x, y] = SIDE_POINTS[handle]
-  const belowLabel = node.type === 'icon' && handle === 'bottom' ? layoutSize(node).height - iconSizeOf(node) : 0
+  const point = parseHandle(handle)
+  if (!point) return {}
+  const along = Math.round(point.fraction * 1000) / 1000
+  const [x, y] =
+    point.side === 'left' ? [0, along] : point.side === 'right' ? [1, along] : point.side === 'top' ? [along, 0] : [along, 1]
+  const belowLabel = node.type === 'icon' && point.side === 'bottom' ? layoutSize(node).height - iconSizeOf(node) : 0
   return { [`${prefix}X`]: x, [`${prefix}Y`]: y, [`${prefix}Dx`]: 0, [`${prefix}Dy`]: belowLabel, [`${prefix}Perimeter`]: 0 }
 }
 

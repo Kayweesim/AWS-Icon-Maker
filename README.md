@@ -24,6 +24,24 @@ npm run icons
 To use a newer quarterly release, pass its zip URL:
 `AWS_ICONS_URL=https://…/Icon-package_….zip npm run icons`.
 
+## Deploying (Vercel)
+
+The app is a static site with no backend, so any static host works. `vercel.json` configures
+Vercel: `npm ci`, `npm run build`, output in `dist`, an SPA rewrite and cache headers.
+
+1. Push the repo to GitHub.
+2. On [vercel.com](https://vercel.com) → **Add New… → Project** → import the repo → **Deploy**.
+   The settings come from `vercel.json`; nothing needs to be entered.
+3. Every push to `main` redeploys; every branch and pull request gets its own preview URL.
+
+The build downloads the AWS icon package from `d1.awsstatic.com` (about 14 MB, roughly 10 s), so
+the build machine needs network access. If AWS retires that URL, set `AWS_ICONS_URL` to the
+current zip in **Project → Settings → Environment Variables**.
+
+Diagrams are stored in each person's browser (localStorage), so the deployment is a shared *tool*,
+not a shared *document*: share work by sending the exported `.json` or `.drawio` file. Live
+multi-user editing would need a sync backend (e.g. Liveblocks) and is not built yet.
+
 ## Features
 
 - **Icon palette:** 304 service icons and 466 resource icons in 24 categories, with search and
@@ -40,7 +58,10 @@ To use a newer quarterly release, pass its zip URL:
   architecture connections: data flow, async/event (dashed), two-way, replication/backup, network
   link and monitoring/logs. Click a preset, then click two services. Or select a service, press
   <kbd>A</kbd> and click another (Shift-click keeps chaining). You can also drag from a side
-  handle. Each arrow can have a label, a solid or dashed line, an elbow, straight or curved path,
+  handle. Groups have several connection points along each side (more on bigger groups), so an
+  arrow can meet a VPC or Region where it should rather than only at the middle of a side; a point
+  you pick by hand survives Tidy and Auto-arrange as long as that side still faces the other node.
+  Each arrow can have a label, a solid or dashed line, an elbow, straight or curved path,
   and arrowheads at the end, both ends or neither. Several arrows between the same two services
   (a request and its reply, say) are drawn side by side: the second below the first.
 - **Text:** press <kbd>T</kbd> and click anywhere, including inside a group, to add a text box you

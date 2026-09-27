@@ -56,3 +56,6 @@ export const PARALLEL_EDGE_GAP = 16
 
 /** Duration of the clean-up animation. */
 export const LAYOUT_ANIMATION_MS = 300
+
+/** Roughly how far apart connection points sit along a node's side. */
+export const HANDLE_SPACING = 160

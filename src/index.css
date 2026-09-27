@@ -88,6 +88,7 @@ body {
 }
 
 .react-flow__node-awsGroup [data-group-header],
+.react-flow__node-awsGroup .react-flow__handle,
 .react-flow__node-awsGroup .react-flow__resize-control {
   pointer-events: auto;
 }

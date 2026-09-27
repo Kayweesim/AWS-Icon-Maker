@@ -1,4 +1,5 @@
 import { GROUP_STYLES, type GroupType } from '../data/groups'
+import { parseHandle } from '../layout/handles'
 import { DEFAULT_EDGE_DATA } from '../store/diagramStore'
 import type { AppEdge, AppNode, AwsEdgeData, EdgeArrows, EdgePathType } from '../types'
 
@@ -47,7 +48,6 @@ const str = (value: unknown, fallback = '') => (typeof value === 'string' ? valu
 // Icons must come from the bundled AWS package, never arbitrary URLs.
 const ICON_PATH = /^\/aws-icons\/[\w./&+-]+\.svg$/
 
-const HANDLE_IDS = new Set(['top', 'right', 'bottom', 'left'])
 const PATH_TYPES: EdgePathType[] = ['step', 'straight', 'bezier']
 const ARROWS: EdgeArrows[] = ['end', 'both', 'none']
 
@@ -99,7 +99,7 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
   if (!isObject(raw) || typeof raw.source !== 'string' || typeof raw.target !== 'string') return null
   if (!nodeIds.has(raw.source) || !nodeIds.has(raw.target)) return null
   const data = isObject(raw.data) ? raw.data : {}
-  const handle = (value: unknown) => (typeof value === 'string' && HANDLE_IDS.has(value) ? value : null)
+  const handle = (value: unknown) => (typeof value === 'string' && parseHandle(value) ? value : null)
   const edgeData: AwsEdgeData = {
     ...DEFAULT_EDGE_DATA,
     label: str(data.label),

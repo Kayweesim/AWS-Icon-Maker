@@ -1,14 +1,20 @@
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
 import { memo } from 'react'
 import { groupIconPath, groupStyle } from '../../data/groups'
+import { HANDLE_SIDES, handleId, handlePercents, type HandleSide } from '../../layout/handles'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { GroupNode as GroupNodeType } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
 
-const SIDES = [Position.Top, Position.Right, Position.Bottom, Position.Left]
+const POSITIONS: Record<HandleSide, Position> = {
+  top: Position.Top,
+  right: Position.Right,
+  bottom: Position.Bottom,
+  left: Position.Left,
+}
 const BORDER = 1.5
 
-function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
+function GroupNodeComponent({ id, data, selected, width, height }: NodeProps<GroupNodeType>) {
   const editing = useDiagramStore((s) => s.editingId === id)
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const updateNodeData = useDiagramStore((s) => s.updateNodeData)
@@ -64,9 +70,19 @@ function GroupNodeComponent({ id, data, selected }: NodeProps<GroupNodeType>) {
           </div>
         </div>
       </div>
-      {SIDES.map((side) => (
-        <Handle key={side} id={side} type="source" position={side} />
-      ))}
+      {/* Several connection points along each side, so arrows can attach where they belong. */}
+      {HANDLE_SIDES.flatMap((side) => {
+        const alongSide = side === 'left' || side === 'right' ? (height ?? style.height) : (width ?? style.width)
+        return handlePercents(alongSide).map((percent) => (
+          <Handle
+            key={handleId(side, percent)}
+            id={handleId(side, percent)}
+            type="source"
+            position={POSITIONS[side]}
+            style={side === 'left' || side === 'right' ? { top: `${percent}%` } : { left: `${percent}%` }}
+          />
+        ))
+      })}
     </>
   )
 }

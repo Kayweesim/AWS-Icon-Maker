@@ -39,7 +39,20 @@ async function download() {
 
 function extract() {
   rmSync(extractDir, { recursive: true, force: true })
-  execFileSync('unzip', ['-q', '-o', zipPath, '-d', extractDir])
+  // `unzip` is not on every CI image, so fall back to python's zipfile module.
+  const unzippers = [
+    ['unzip', ['-q', '-o', zipPath, '-d', extractDir]],
+    ['python3', ['-m', 'zipfile', '-e', zipPath, extractDir]],
+  ]
+  for (const [command, args] of unzippers) {
+    try {
+      execFileSync(command, args, { stdio: 'ignore' })
+      return
+    } catch {
+      // Try the next one.
+    }
+  }
+  throw new Error('Could not unzip the icon package: install `unzip` or python3')
 }
 
 function findTopDir(prefix) {

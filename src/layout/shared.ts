@@ -1,6 +1,7 @@
 import type { XYPosition } from '@xyflow/react'
 import type { AppEdge, AppNode } from '../types'
 import { GRID_SIZE, GROUP_HEADER_GAP, GROUP_MIN_SIZE, GROUP_PADDING, NODE_GAP } from './config'
+import { parseHandle, type HandleSide } from './handles'
 import { groupHasIcon, groupLabelLayout, iconSizeOf, layoutSize } from './sizes'
 import { emptyLayout, type LayoutResult } from './types'
 
@@ -206,7 +207,7 @@ export function fitGroup(group: Box, children: Box[], options: { growOnly?: bool
   }
 }
 
-type Side = 'top' | 'right' | 'bottom' | 'left'
+type Side = HandleSide
 
 /** Handles on the sides of two nodes that face each other. */
 export function facingHandles(source: XYPosition, target: XYPosition): { sourceHandle: Side; targetHandle: Side } {
@@ -247,7 +248,13 @@ export function toLayoutResult(tree: Tree, boxes: Map<string, Box>, edges: AppEd
   for (const edge of edges) {
     if (!tree.byId.has(edge.source) || !tree.byId.has(edge.target)) continue
     if (!scope.has(edge.source) && !scope.has(edge.target)) continue
-    const handles = facingHandles(connectionPoint(edge.source), connectionPoint(edge.target))
+    const facing = facingHandles(connectionPoint(edge.source), connectionPoint(edge.target))
+    // A hand-picked point is kept as long as it's on the side that now faces the other node.
+    const keep = (current: string | null | undefined, side: Side) => (parseHandle(current)?.side === side ? current! : side)
+    const handles = {
+      sourceHandle: keep(edge.sourceHandle, facing.sourceHandle),
+      targetHandle: keep(edge.targetHandle, facing.targetHandle),
+    }
     if (edge.sourceHandle !== handles.sourceHandle || edge.targetHandle !== handles.targetHandle) {
       result.edgeHandles[edge.id] = handles
     }

@@ -168,6 +168,39 @@ describe('tidy', () => {
     })
   })
 
+  describe('hand-picked connection points', () => {
+    const icon = (id: string, x: number, y: number): AppNode => ({
+      id,
+      type: 'icon',
+      position: { x, y },
+      data: { label: id, iconId: 'svc:Compute/Amazon-EC2', iconPath: '/x.svg', iconSize: 64 },
+    })
+    const arrow = (targetAt: { x: number; y: number }) => ({
+      nodes: [icon('a', 0, 0), icon('b', targetAt.x, targetAt.y)],
+      edges: [
+        {
+          id: 'e',
+          type: 'aws' as const,
+          source: 'a',
+          target: 'b',
+          sourceHandle: 'right-25',
+          targetHandle: 'left-75',
+          data: { label: '', dashed: false, pathType: 'step' as const, arrows: 'end' as const },
+        },
+      ],
+    })
+
+    it('are kept when that side still faces the other node', () => {
+      const { nodes, edges } = arrow({ x: 400, y: 8 })
+      expect(tidy(nodes, edges).edgeHandles).toEqual({})
+    })
+
+    it('fall back to the middle of the side that now faces it', () => {
+      const { nodes, edges } = arrow({ x: 0, y: 400 })
+      expect(tidy(nodes, edges).edgeHandles).toEqual({ e: { sourceHandle: 'bottom', targetHandle: 'top' } })
+    })
+  })
+
   it('returns nothing to do for an empty diagram', () => {
     expect(isEmptyLayout(tidy([], []))).toBe(true)
   })
