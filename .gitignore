@@ -28,3 +28,8 @@ src/data/code-mappings.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local env (keys)
+.env
+.env.*
+!.env.example

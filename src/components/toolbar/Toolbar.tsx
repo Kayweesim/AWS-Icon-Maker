@@ -1,21 +1,24 @@
 import { Code2, FilePlus2, FolderOpen, Keyboard, Redo2, Save, Undo2 } from 'lucide-react'
+import type { Collaboration } from '../../collab/useCollaboration'
 import type { DiagramActions } from '../../hooks/useDiagramActions'
 import { mod, shift } from '../../lib/platform'
 import { useDiagramStore } from '../../store/diagramStore'
 import { CleanUpMenu } from './CleanUpMenu'
 import { ExportMenu } from './ExportMenu'
+import { ShareMenu } from './ShareMenu'
 import { ToolbarButton, ToolbarDivider } from './ToolbarButton'
 
 const panel = 'pointer-events-auto flex h-11 items-center rounded-xl border border-zinc-200 bg-white/95 px-1.5 shadow-panel backdrop-blur'
 
 type Props = {
   actions: DiagramActions
+  collab: Collaboration
   onShowShortcuts: () => void
   codeOpen: boolean
   onToggleCode: () => void
 }
 
-export function Toolbar({ actions, onShowShortcuts, codeOpen, onToggleCode }: Props) {
+export function Toolbar({ actions, collab, onShowShortcuts, codeOpen, onToggleCode }: Props) {
   const name = useDiagramStore((s) => s.name)
   const setName = useDiagramStore((s) => s.setName)
   const canUndo = useDiagramStore((s) => s.past.length > 0)
@@ -24,7 +27,8 @@ export function Toolbar({ actions, onShowShortcuts, codeOpen, onToggleCode }: Pr
   const redo = useDiagramStore((s) => s.redo)
 
   return (
-    <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3">
+    // z-20 keeps the toolbar, and the menus it opens, above the properties panel.
+    <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-start justify-between gap-3">
       <div className={`${panel} gap-2 pr-3 pl-2.5`}>
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#232F3E] text-[9px] font-bold tracking-tight text-white">
           AWS
@@ -75,6 +79,8 @@ export function Toolbar({ actions, onShowShortcuts, codeOpen, onToggleCode }: Pr
           Export as Code
         </button>
         <ExportMenu actions={actions} />
+        <ToolbarDivider />
+        <ShareMenu collab={collab} />
       </div>
     </div>
   )

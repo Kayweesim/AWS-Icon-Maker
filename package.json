@@ -17,6 +17,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@liveblocks/client": "^3.24.2",
+    "@liveblocks/zustand": "^3.24.2",
     "@shikijs/langs": "^4.4.3",
     "@shikijs/themes": "^4.4.3",
     "@xyflow/react": "^12.11.6",

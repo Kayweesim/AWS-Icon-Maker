@@ -13,6 +13,7 @@ import {
   type XYPosition,
 } from '@xyflow/react'
 import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import { useCursorBroadcast } from '../../collab/useCursors'
 import { groupStyle } from '../../data/groups'
 import { setCanvasPointer } from '../../lib/pointer'
 import { useDiagramStore } from '../../store/diagramStore'
@@ -22,6 +23,7 @@ import { GroupNode } from '../nodes/GroupNode'
 import { IconNode } from '../nodes/IconNode'
 import { TextNode } from '../nodes/TextNode'
 import { ArrowPreview } from './ArrowPreview'
+import { Cursors } from './Cursors'
 
 const nodeTypes: NodeTypes = { icon: IconNode, awsGroup: GroupNode, text: TextNode }
 const edgeTypes: EdgeTypes = { aws: AwsEdge }
@@ -55,6 +57,7 @@ export function DiagramCanvas() {
   const beginHistoryBatch = useDiagramStore((s) => s.beginHistoryBatch)
   const endHistoryBatch = useDiagramStore((s) => s.endHistoryBatch)
   const { screenToFlowPosition } = useReactFlow()
+  const cursor = useCursorBroadcast()
   const [pointer, setPointer] = useState<XYPosition | null>(null)
   // Set during a Shift+drag box selection. When it ends, only services, text and the arrows
   // between them stay selected, so they can be moved without the groups around them.
@@ -97,6 +100,7 @@ export function DiagramCanvas() {
   const onMouseMove = (event: MouseEvent) => {
     // Quick add (S) opens at the cursor.
     setCanvasPointer({ x: event.clientX, y: event.clientY })
+    cursor.move(() => flowPoint(event))
     if (tool.kind === 'arrow') setPointer(flowPoint(event))
   }
 
@@ -134,7 +138,10 @@ export function DiagramCanvas() {
       onDragOver={onDragOver}
       onDrop={onDrop}
       onMouseMove={onMouseMove}
-      onMouseLeave={() => setCanvasPointer(null)}
+      onMouseLeave={() => {
+        setCanvasPointer(null)
+        cursor.leave()
+      }}
       // Quick add is anchored to a screen point, so close it when the view or nodes move.
       onMoveStart={() => closeQuickAdd()}
       onNodeDragStart={() => {
@@ -180,6 +187,7 @@ export function DiagramCanvas() {
         nodeStrokeWidth={3}
         maskColor="rgb(244 244 245 / 0.7)"
       />
+      <Cursors />
       {tool.kind === 'arrow' && tool.sourceId && pointer && (
         <ArrowPreview sourceId={tool.sourceId} pointer={pointer} preset={tool.preset} />
       )}

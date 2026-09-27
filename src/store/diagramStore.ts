@@ -6,7 +6,10 @@ import {
   type NodeChange,
   type XYPosition,
 } from '@xyflow/react'
-import { create } from 'zustand'
+import { liveblocks, type WithLiveblocks } from '@liveblocks/zustand'
+import { create, type StateCreator } from 'zustand'
+import { collabClient, type UserPresence } from '../collab/client'
+import { mergeRemote } from '../collab/merge'
 import { arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } from '../data/arrows'
 import { groupStyle, type GroupType } from '../data/groups'
 import { applyLayoutResult } from '../layout/apply'
@@ -19,7 +22,7 @@ import { cloneClipboard, copySelection, selectionWithDescendants, type Clipboard
 import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSize, sortNodes } from '../lib/geometry'
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
-import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData } from '../types'
+import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type SharedDoc } from '../types'
 
 /** What clicking on the canvas does. */
 export type Tool =
@@ -50,6 +53,10 @@ export type DiagramState = {
   quickAdd: QuickAddTarget | null
   /** Group selected with ⌘-click: deleting it removes only the group and keeps its contents. */
   groupOnlyId: string | null
+  /** The diagram as shared with a collaboration room. Synced by Liveblocks; see /collab. */
+  doc: SharedDoc
+  /** What this user broadcasts to the room: name, colour and cursor. */
+  presence: UserPresence
 
   onNodesChange: (changes: NodeChange<AppNode>[]) => void
   onEdgesChange: (changes: EdgeChange<AppEdge>[]) => void
@@ -108,6 +115,12 @@ export type DiagramState = {
   applyLayout: (result: LayoutResult) => void
 
   setName: (name: string) => void
+
+  /** Publishes the local diagram to the room. Called by the collaboration sync, not the UI. */
+  publishDoc: (doc: SharedDoc) => void
+  /** Applies a diagram received from the room, keeping this user's selection and drag intact. */
+  applyRemoteDoc: (doc: SharedDoc) => void
+  setPresence: (patch: Partial<UserPresence>) => void
   /** Clears the canvas as an undoable step. */
   newDiagram: () => void
   /** Replaces the diagram and resets history, e.g. when opening a file. */
@@ -187,7 +200,9 @@ let pasteCount = 0
 // Jumps a running layout animation to its end state.
 let finishLayoutAnimation: (() => void) | null = null
 
-export const useDiagramStore = create<DiagramState>()((set, get) => {
+export type DiagramStore = WithLiveblocks<DiagramState>
+
+const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (set, get) => {
   /** History entries for an edit about to replace the current diagram. */
   const record = (snapshot?: Snapshot) => {
     finishLayoutAnimation?.()
@@ -209,6 +224,8 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
     arrowPreset: DEFAULT_ARROW_PRESET,
     quickAdd: null,
     groupOnlyId: null,
+    doc: { name: DEFAULT_NAME, nodes: [], edges: [] },
+    presence: { name: '', colour: '', cursor: null },
 
     onNodesChange: (changes) => {
       // Removals are handled by deleteSelection so groups take their contents with them.
@@ -565,6 +582,16 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
 
     setName: (name) => set({ name }),
 
+    publishDoc: (doc) => set({ doc }),
+
+    applyRemoteDoc: (doc) => {
+      finishLayoutAnimation?.()
+      // Not an undo step: Ctrl+Z should undo your own edits, not someone else's.
+      set({ ...mergeRemote(get(), doc), name: doc.name || DEFAULT_NAME })
+    },
+
+    setPresence: (patch) => set({ presence: { ...get().presence, ...patch } }),
+
     newDiagram: () =>
       set({ ...record(), nodes: [], edges: [], editingId: null, name: DEFAULT_NAME, tool: SELECT_TOOL }),
 
@@ -582,7 +609,30 @@ export const useDiagramStore = create<DiagramState>()((set, get) => {
       })
     },
   }
-})
+}
+
+/**
+ * `doc` and `presence` are mirrored into the Liveblocks room the user has joined; everything else
+ * stays local. Without a key the middleware is skipped and a dormant `liveblocks` stub stands in.
+ */
+const offline: DiagramStore['liveblocks'] = {
+  enterRoom: () => () => {},
+  leaveRoom: () => {},
+  room: null,
+  others: [],
+  isStorageLoading: false,
+  status: 'initial',
+}
+
+export const useDiagramStore = create<DiagramStore>()(
+  collabClient
+    ? liveblocks(createDiagramState, {
+        client: collabClient,
+        storageMapping: { doc: true },
+        presenceMapping: { presence: true },
+      })
+    : (...args) => ({ ...createDiagramState(...args), liveblocks: offline }),
+)
 
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   // Handy for debugging and browser tests.

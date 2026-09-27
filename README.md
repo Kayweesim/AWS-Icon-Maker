@@ -38,9 +38,29 @@ The build downloads the AWS icon package from `d1.awsstatic.com` (about 14 MB, r
 the build machine needs network access. If AWS retires that URL, set `AWS_ICONS_URL` to the
 current zip in **Project → Settings → Environment Variables**.
 
-Diagrams are stored in each person's browser (localStorage), so the deployment is a shared *tool*,
-not a shared *document*: share work by sending the exported `.json` or `.drawio` file. Live
-multi-user editing would need a sync backend (e.g. Liveblocks) and is not built yet.
+## Live collaboration
+
+Press **Share** in the toolbar and **Start a session**. The URL becomes `/ABCD` — a four-letter
+room code — and anyone who opens that link edits the same canvas: nodes, arrows, groups, the
+diagram name, imports, Tidy and Auto-arrange all sync, and you see each other's cursors. Leaving a
+session keeps a local copy of the diagram.
+
+Syncing runs on [Liveblocks](https://liveblocks.io), which needs one key:
+
+1. Create a free account and a project at liveblocks.io.
+2. Copy the project's **public** key (`pk_…`).
+3. Vercel → **Project → Settings → Environment Variables** → `VITE_LIVEBLOCKS_PUBLIC_KEY`, then
+   redeploy. Locally, put the same line in `.env.local` (see `.env.example`).
+
+The key is public by design: it is shipped to the browser and only allows joining rooms in that
+project. Anyone who has a room code can edit that room, so treat codes like the diagram itself.
+Without the variable the app runs exactly as before — offline and single-player — and the Share
+menu says so.
+
+How it works: `src/collab` projects the diagram to a `SharedDoc` (no selection or drag state),
+publishes it to the room on a short debounce, and merges what arrives back into the canvas,
+keeping your own selection and any drag in progress. Someone else's edit is never an undo step of
+yours. Anything that arrives is validated with the same parser as an opened file.
 
 ## Features
 
@@ -130,6 +150,7 @@ src/
   exporters/              pure diagram -> code functions: mermaid.ts, python.ts, terraform.ts
   layout/                 pure layout functions: tidy.ts, autoArrange.ts, config.ts
   data/                   icon manifest, code mappings, AWS group styles
+  collab/                 Liveblocks room: room codes, doc sync, merge, cursors
   lib/                    nesting geometry, clipboard, persistence, image export, highlighting
   hooks/                  keyboard shortcuts, autosave, file and clean-up actions, generated code
   components/
@@ -150,7 +171,10 @@ npm test
 
 Unit tests cover each exporter on a sample diagram (ALB → two EC2 instances in private subnets
 → RDS, inside a VPC) and on awkward input, plus Tidy and Auto-arrange on a deliberately messy
-diagram. Mermaid output is checked with Mermaid's own parser.
+diagram. Mermaid output is checked with Mermaid's own parser. Collaboration is covered by tests
+for room codes, the merge that folds a room update into the canvas, and the sync loop driven
+against the real store (a local edit is published once; an arriving document is applied, settles,
+and never becomes an undo step).
 
 Two toolchain checks run only when their tools are available:
 

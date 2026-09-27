@@ -1,5 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react'
 import { useCallback, useMemo, useState } from 'react'
+import { useCollaboration } from './collab/useCollaboration'
 import { ShortcutsDialog } from './components/ShortcutsDialog'
 import { DiagramCanvas } from './components/canvas/DiagramCanvas'
 import { EmptyState } from './components/canvas/EmptyState'
@@ -16,6 +17,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 function Editor() {
   const { actions, notice, dismissNotice } = useDiagramActions()
+  const collab = useCollaboration()
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showCode, setShowCode] = useState(false)
   const toggleHelp = useCallback(() => setShowShortcuts((v) => !v), [])
@@ -36,6 +38,7 @@ function Editor() {
         <EmptyState />
         <Toolbar
           actions={actions}
+          collab={collab}
           onShowShortcuts={toggleHelp}
           codeOpen={showCode}
           onToggleCode={() => setShowCode((v) => !v)}

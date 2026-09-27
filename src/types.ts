@@ -44,3 +44,6 @@ export type PaletteDragItem =
 
 export const DRAG_MIME = 'application/x-aws-diagram-item'
 export { GRID_SIZE } from './layout/config'
+
+/** The part of a diagram shared with a collaboration room: no selection or other UI state. */
+export type SharedDoc = { name: string; nodes: AppNode[]; edges: AppEdge[] }
