@@ -39,6 +39,18 @@ export function presenceColour(name: string): string {
   return PRESENCE_COLOURS[hash % PRESENCE_COLOURS.length]
 }
 
+/** Compact label used by collaborator avatars. */
+export function presenceInitials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? '')
+      .join('') || '?'
+  )
+}
+
 /** The name shown to others, remembered between visits. */
 export function loadDisplayName(): string {
   try {

@@ -7,11 +7,20 @@ export type UserPresence = {
   colour: string
   /** Pointer position in canvas coordinates, or null when the pointer left the canvas. */
   cursor: { x: number; y: number } | null
+  /** Selected nodes, broadcast separately from the saved/shared diagram. Optional for older clients. */
+  selectedNodeIds?: string[]
 }
+
+/** The Zustand middleware maps the store's `presence` field into this room-presence wrapper. */
+export type RoomPresence = {
+  presence: UserPresence
+}
+
+export const presenceOf = (roomPresence: RoomPresence) => roomPresence.presence
 
 declare global {
   interface Liveblocks {
-    Presence: UserPresence
+    Presence: RoomPresence
   }
 }
 

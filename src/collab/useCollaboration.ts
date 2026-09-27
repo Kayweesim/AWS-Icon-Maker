@@ -11,6 +11,7 @@ import {
   roomPath,
   saveDisplayName,
 } from './room'
+import { startSelectionPresence } from './selectionPresence'
 import { startSync } from './sync'
 
 export type Collaboration = ReturnType<typeof useCollaboration>
@@ -32,6 +33,9 @@ export function useCollaboration() {
   }, [])
 
   useEffect(() => setPresence({ name, colour: presenceColour(name) }), [name, setPresence])
+
+  // Keep selection ready before entering a room so the initial presence is complete.
+  useEffect(() => startSelectionPresence(), [])
 
   useEffect(() => {
     if (!COLLAB_ENABLED || !code) return

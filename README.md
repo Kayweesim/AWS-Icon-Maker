@@ -42,8 +42,9 @@ current zip in **Project → Settings → Environment Variables**.
 
 Press **Share** in the toolbar and **Start a session**. The URL becomes `/ABCD` — a four-letter
 room code — and anyone who opens that link edits the same canvas: nodes, arrows, groups, the
-diagram name, imports, Tidy and Auto-arrange all sync, and you see each other's cursors. Leaving a
-session keeps a local copy of the diagram.
+diagram name, imports, Tidy and Auto-arrange all sync. You see each other's cursors, plus coloured
+outlines and avatar badges on the nodes other people have selected. Leaving a session keeps a local
+copy of the diagram.
 
 Syncing runs on [Liveblocks](https://liveblocks.io), which needs one key:
 
@@ -150,7 +151,7 @@ src/
   exporters/              pure diagram -> code functions: mermaid.ts, python.ts, terraform.ts
   layout/                 pure layout functions: tidy.ts, autoArrange.ts, config.ts
   data/                   icon manifest, code mappings, AWS group styles
-  collab/                 Liveblocks room: room codes, doc sync, merge, cursors
+  collab/                 Liveblocks room: room codes, doc sync, merge, cursors and selection presence
   lib/                    nesting geometry, clipboard, persistence, image export, highlighting
   hooks/                  keyboard shortcuts, autosave, file and clean-up actions, generated code
   components/

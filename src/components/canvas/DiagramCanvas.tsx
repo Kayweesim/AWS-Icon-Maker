@@ -24,6 +24,7 @@ import { IconNode } from '../nodes/IconNode'
 import { TextNode } from '../nodes/TextNode'
 import { ArrowPreview } from './ArrowPreview'
 import { Cursors } from './Cursors'
+import { RemoteSelections } from './RemoteSelections'
 
 const nodeTypes: NodeTypes = { icon: IconNode, awsGroup: GroupNode, text: TextNode }
 const edgeTypes: EdgeTypes = { aws: AwsEdge }
@@ -187,6 +188,7 @@ export function DiagramCanvas() {
         nodeStrokeWidth={3}
         maskColor="rgb(244 244 245 / 0.7)"
       />
+      <RemoteSelections nodes={nodes} />
       <Cursors />
       {tool.kind === 'arrow' && tool.sourceId && pointer && (
         <ArrowPreview sourceId={tool.sourceId} pointer={pointer} preset={tool.preset} />
