@@ -111,6 +111,9 @@ yours. Anything that arrives is validated with the same parser as an opened file
   delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
 - **Files:** export PNG (2×), SVG or a draw.io file, save and open JSON, and autosave to
   localStorage. Dropped images are embedded in the diagram so saved files stay self-contained.
+  Saving writes every page; opening a JSON file is additive — a page with the same id as one
+  already open replaces just that page (undoable); other pages fill the page in view if it's empty,
+  or are added as new tabs. No page is ever removed.
   The `.drawio` export opens in draw.io / diagrams.net with native AWS group containers, embedded
   icons and images, and editable arrows and labels.
 - **Properties panel:** appears when something is selected.

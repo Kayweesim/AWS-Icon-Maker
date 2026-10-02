@@ -137,4 +137,86 @@ describe('pages', () => {
     expect(onScreen()).toEqual([])
     expect(state().parked).toEqual({})
   })
+
+  describe('importing a file', () => {
+    const page = (id: string, name: string, ids: string[]) => ({ id, name, nodes: ids.map(icon), edges: [] })
+    const pageNodes = (id: string) => {
+      const s = state()
+      return (id === s.activePageId ? s.nodes : (s.parked[id]?.nodes ?? [])).map((n) => n.id)
+    }
+
+    it('adds pages it doesn’t have and keeps every existing page', () => {
+      const first = state().activePageId
+
+      state().importDiagram({ name: 'Other', pages: [page('x1', 'Imported 1', ['x']), page('x2', 'Imported 2', ['y'])] })
+
+      expect(names()).toEqual(['Page 1', 'Imported 1', 'Imported 2'])
+      expect(pageNodes(first)).toEqual(['a'])
+      expect(state().activePageId).toBe('x1')
+      expect(onScreen()).toEqual(['x'])
+      expect(pageNodes('x2')).toEqual(['y'])
+    })
+
+    it('replaces only the pages the file also has, as an undo step on each', () => {
+      const first = state().activePageId
+      state().addPage()
+      const second = state().activePageId
+      state().addIconNode({ iconId: 'b', name: 'b', path: '/aws-icons/services/Compute/Arch_b_48.svg' }, { x: 0, y: 0 })
+      const kept = state().nodes.map((n) => n.id)
+
+      state().importDiagram({ pages: [page(first, 'Renamed', ['z']), page('new', 'Extra', ['w'])] })
+
+      expect(names()).toEqual(['Renamed', 'Page 2', 'Extra'])
+      expect(state().activePageId).toBe(first)
+      expect(onScreen()).toEqual(['z'])
+      expect(pageNodes(second)).toEqual(kept)
+      state().undo()
+      expect(onScreen()).toEqual(['a'])
+    })
+
+    it('fills the empty page in view instead of adding a tab after it', () => {
+      state().addPage()
+      state().addPage()
+      state().selectPage(state().pages[1].id)
+
+      state().importDiagram({ pages: [page('x1', 'Imported 1', ['x']), page('x2', 'Imported 2', ['y'])] })
+
+      expect(names()).toEqual(['Page 1', 'Imported 1', 'Page 3', 'Imported 2'])
+      expect(onScreen()).toEqual(['x'])
+      state().undo()
+      expect(onScreen()).toEqual([])
+    })
+
+    it('adds a tab when the page in view has something on it', () => {
+      state().addPage()
+      state().selectPage(state().pages[0].id)
+
+      state().importDiagram({ pages: [page('x1', 'Imported', ['x'])] })
+
+      expect(names()).toEqual(['Page 1', 'Page 2', 'Imported'])
+    })
+
+    it('never drops a page on a second import of the same export', () => {
+      state().addPage()
+      state().selectPage(state().pages[0].id)
+      state().importDiagram({ pages: [page('x1', 'Imported', ['x'])] })
+      state().importDiagram({ pages: [page('x1', 'Imported', ['x2'])] })
+
+      expect(names()).toEqual(['Page 1', 'Page 2', 'Imported'])
+      expect(onScreen()).toEqual(['x2'])
+    })
+
+    it('takes the file’s place when the diagram is still fresh', () => {
+      state().newDiagram()
+      state().importDiagram({ name: 'Theirs', pages: [page('x1', 'Imported', ['x'])] })
+
+      expect(names()).toEqual(['Imported'])
+      expect(state().name).toBe('Theirs')
+    })
+
+    it('keeps the diagram’s own name once it has one', () => {
+      state().importDiagram({ name: 'Theirs', pages: [page('x1', 'Imported', ['x'])] })
+      expect(state().name).toBe('Sheets')
+    })
+  })
 })

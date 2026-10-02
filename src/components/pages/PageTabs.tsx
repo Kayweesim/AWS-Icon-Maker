@@ -23,10 +23,12 @@ function Tab({ id, name, active, closable }: { id: string; name: string; active:
   const visitors = useOthersByPage()[id] ?? []
   const [draft, setDraft] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
+  const editing = draft !== null
 
+  // Select the name once when editing starts, not on every keystroke, or each letter replaces the last.
   useEffect(() => {
-    if (draft !== null) input.current?.select()
-  }, [draft])
+    if (editing) input.current?.select()
+  }, [editing])
 
   const commit = () => {
     if (draft !== null) renamePage(id, draft)

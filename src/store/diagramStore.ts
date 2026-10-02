@@ -144,6 +144,12 @@ export type DiagramState = {
   newDiagram: () => void
   /** Replaces the whole diagram, pages and all, and resets history. */
   loadDiagram: (diagram: { name?: string; pages: DiagramPage[] }) => void
+  /**
+   * Merges an opened file into the diagram: a page with the same id as one already here replaces
+   * that page's contents (as an undo step on it); any other page fills the page in view if it's
+   * empty, or is added at the end. Nothing is ever removed. Opens the first imported page.
+   */
+  importDiagram: (diagram: { name?: string; pages: DiagramPage[] }) => void
 }
 
 export const DEFAULT_NAME = 'Untitled diagram'
@@ -760,6 +766,56 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         edges: first.edges,
         past: [],
         future: [],
+        ...clearedUiState,
+      })
+    },
+
+    importDiagram: (diagram) => {
+      if (diagram.pages.length === 0) return
+      const state = get()
+      finishLayoutAnimation?.()
+
+      // Park the page in view so every page is handled the same way, then open the target below.
+      const parked: Record<string, ParkedPage> = { ...state.parked, [state.activePageId]: currentPage(state) }
+      const pages = [...state.pages]
+      const ids = new Set(pages.map((p) => p.id))
+      // An empty page in view is filled by the first new page instead of a tab being added after it.
+      let emptySlot =
+        state.nodes.length === 0 && !diagram.pages.some((p) => p.id === state.activePageId) ? state.activePageId : null
+
+      for (const page of diagram.pages) {
+        const imported = { nodes: sortNodes(page.nodes), edges: page.edges }
+        // Replacing keeps the old contents one undo away, so importing never loses anything.
+        const replace = (slot: string) => {
+          const existing = parked[slot] ?? EMPTY_PAGE
+          delete parked[slot]
+          pages[pages.findIndex((p) => p.id === slot)] = { id: page.id, name: page.name }
+          parked[page.id] = {
+            ...imported,
+            past: [...existing.past, { nodes: existing.nodes, edges: existing.edges }].slice(-HISTORY_LIMIT),
+            future: [],
+          }
+        }
+        if (ids.has(page.id)) replace(page.id)
+        else if (emptySlot) {
+          replace(emptySlot)
+          emptySlot = null
+        } else {
+          pages.push({ id: page.id, name: page.name })
+          parked[page.id] = { ...imported, past: [], future: [] }
+        }
+        ids.add(page.id)
+      }
+
+      const target = diagram.pages[0].id
+      const opened = parked[target]
+      delete parked[target]
+      set({
+        name: state.name === DEFAULT_NAME ? diagram.name || DEFAULT_NAME : state.name,
+        pages,
+        ...onPage(target, state.presence),
+        parked,
+        ...opened,
         ...clearedUiState,
       })
     },

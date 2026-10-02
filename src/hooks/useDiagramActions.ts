@@ -62,7 +62,8 @@ export function useDiagramActions() {
         if (!file) return
         try {
           const diagram = parseDiagram(JSON.parse(await file.text()))
-          useDiagramStore.getState().loadDiagram(diagram)
+          // Additive: pages already here are kept, and only those the file also has are replaced.
+          useDiagramStore.getState().importDiagram(diagram)
           await nextFrame()
           fitView({ padding: 0.15, maxZoom: 1, duration: 200 })
         } catch (error) {

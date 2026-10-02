@@ -37,3 +37,6 @@ src/data/code-mappings.json
 
 # example files
 examples/
+
+# Graphify
+graphify-out/
