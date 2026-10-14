@@ -17,15 +17,26 @@ export function EdgeProperties({ edges }: { edges: AppEdge[] }) {
 
   return (
     <>
-      {edges.length === 1 && (
+      {edges.length === 1 && <>
         <TextField
-          key={edges[0].id}
+          key={`${edges[0].id}-label`}
           label="Label"
           placeholder="Add a label"
+          multiline
           value={edges[0].data?.label ?? ''}
           onCommit={(label) => update({ label })}
         />
-      )}
+        <p className="text-[12px] leading-snug text-zinc-500">Shown on the arrow. Shift+Enter adds a line.</p>
+        <TextField
+          key={`${edges[0].id}-description`}
+          label="Description"
+          placeholder="Add notes about this connection"
+          multiline
+          value={edges[0].data?.description ?? ''}
+          onCommit={(description) => update({ description })}
+        />
+        <p className="text-[12px] leading-snug text-zinc-500">Notes for this connection, shown only in this sidebar.</p>
+      </>}
       <Segmented
         label="Line"
         value={dashed === undefined ? undefined : dashed ? 'dashed' : 'solid'}

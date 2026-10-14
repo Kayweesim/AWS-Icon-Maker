@@ -1,5 +1,5 @@
 import { groupStyle } from '../data/groups'
-import type { AppNode, IconNode } from '../types'
+import type { AppNode, IconNode, ImageNode } from '../types'
 import {
   GROUP_LABEL_LINE_HEIGHT,
   GROUP_LABEL_MAX_WIDTH,
@@ -20,6 +20,9 @@ export function iconSizeOf(node: IconNode): number {
 }
 
 export const iconNodeWidth = (iconSize: number) => Math.max(iconSize, LABEL_WIDTH)
+export const imageNodeWidth = (imageWidth: number) => Math.max(imageWidth, LABEL_WIDTH)
+/** Image width/height in saved documents always describe the artwork, excluding its caption. */
+export const imageSizeOf = (node: ImageNode) => ({ width: node.width ?? 160, height: node.height ?? 160 })
 
 export function estimateLabelHeight(label: string): number {
   if (!label) return 0
@@ -29,12 +32,12 @@ export function estimateLabelHeight(label: string): number {
   return lines * LABEL_LINE_HEIGHT
 }
 
-function labelHeight(node: IconNode): number {
+function labelHeight(node: IconNode | ImageNode): number {
   const label = node.data?.label ?? ''
   if (!label) return 0
-  // The rendered label keeps its height when the icon is resized, since its width is fixed.
+  // A fixed-width caption keeps its height when the artwork is resized.
   const measured = node.measured?.height
-  if (measured) return Math.max(LABEL_LINE_HEIGHT, measured - iconSizeOf(node) - LABEL_GAP)
+  if (measured) return Math.max(LABEL_LINE_HEIGHT, measured - (node.type === 'icon' ? iconSizeOf(node) : imageSizeOf(node).height) - LABEL_GAP)
   return estimateLabelHeight(label)
 }
 
@@ -84,9 +87,11 @@ export function layoutSize(node: AppNode, iconSize?: number): { width: number; h
     return { width: node.measured?.width ?? estimate!.width, height: node.measured?.height ?? estimate!.height }
   }
   if (node.type === 'image') {
+    const size = imageSizeOf(node)
+    const label = labelHeight(node)
     return {
-      width: node.width ?? node.measured?.width ?? 160,
-      height: node.height ?? node.measured?.height ?? 160,
+      width: imageNodeWidth(size.width),
+      height: size.height + (label ? LABEL_GAP + label : 0),
     }
   }
   const style = groupStyle(node.data?.groupType)

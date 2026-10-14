@@ -5,10 +5,10 @@ import type { AppNode } from '../types'
 export type Rect = { x: number; y: number; width: number; height: number }
 
 export function nodeSize(node: AppNode) {
-  const estimate = node.measured ? undefined : layoutSize(node)
+  const estimate = node.measured?.width !== undefined && node.measured?.height !== undefined ? undefined : layoutSize(node)
   return {
-    width: node.measured?.width ?? node.width ?? estimate!.width,
-    height: node.measured?.height ?? node.height ?? estimate!.height,
+    width: node.measured?.width ?? estimate!.width,
+    height: node.measured?.height ?? estimate!.height,
   }
 }
 

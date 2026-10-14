@@ -6,7 +6,7 @@ import { parseClipboard, serializeClipboard } from '../lib/clipboardFormat'
 import { wholeDiagram } from '../lib/document'
 import { mediaSize } from '../lib/mediaResize'
 import { newPage, parseDiagram, toFile } from '../lib/persistence'
-import type { AppEdge, IconNode, ImageNode } from '../types'
+import type { AppEdge, GroupNode, IconNode, ImageNode } from '../types'
 import { useDiagramStore } from './diagramStore'
 
 const state = () => useDiagramStore.getState()
@@ -83,6 +83,51 @@ describe('image and icon resize integration', () => {
     const xml = exportDrawio({ name: 'Resize', nodes: copied.nodes, edges: copied.edges })
     expect(xml).toContain('width="80" height="40"')
     expect(xml).toContain('width="128" height="128"')
+  })
+
+  it.each(['duplicate', 'copy/paste', 'portable paste'] as const)('preserves each icon size and image caption through %s, including group children', (action) => {
+    const sizes = [16, 32, 48, 64, 100, 128, 256]
+    const group: GroupNode = { id: 'group', type: 'awsGroup', position: { x: 0, y: 0 }, width: 1800, height: 500, selected: true, data: { label: 'Services', groupType: 'generic' } }
+    const icons = sizes.map((size, index) => ({ ...icon, id: `icon-${size}`, parentId: 'group', selected: false, position: { x: index * 220, y: 80 }, data: { ...icon.data, iconSize: size } }))
+    state().loadDiagram({ pages: [newPage('Original', { nodes: [group, ...icons, { ...image, data: { ...image.data, label: 'github\nRepository' } }], edges: [] })] })
+    const originalIds = new Set(state().nodes.map((node) => node.id))
+    if (action === 'duplicate') state().duplicate()
+    else if (action === 'copy/paste') {
+      state().copy()
+      state().addPage()
+      state().paste()
+    } else {
+      const clipboard = parseClipboard(serializeClipboard(copySelection(state().nodes, state().edges)!))
+      state().loadDiagram({ pages: [newPage('Destination')] })
+      state().paste(clipboard, { x: 1000, y: 500 })
+    }
+    const copies = state().nodes.filter((node) => !originalIds.has(node.id))
+    expect(copies.filter((node) => node.type === 'icon').map((node) => node.data.iconSize)).toEqual(sizes)
+    expect(copies.find((node) => node.type === 'image')).toMatchObject({ width: 320, height: 160, data: { label: 'github\nRepository' } })
+    expect(copies.filter((node) => node.type === 'icon').every((node) => node.parentId === copies.find((node) => node.type === 'awsGroup')?.id)).toBe(true)
+    state().undo()
+    expect(state().nodes.some((node) => copies.some((copy) => copy.id === node.id))).toBe(false)
+    state().redo()
+    expect(state().nodes.filter((node) => !originalIds.has(node.id) && node.type === 'icon').map((node) => node.data.iconSize)).toEqual(sizes)
+  })
+
+  it('edits image captions and arrow descriptions as undoable, portable data', () => {
+    state().updateNodeData('image', { label: 'github\nSource code' })
+    state().updateEdgesData(['edge'], { label: 'HTTPS', description: 'Fetch source\nfrom the repository' })
+    const parsed = parseDiagram(toFile(wholeDiagram(state())))
+    expect(parsed.pages[0].nodes[0].data.label).toBe('github\nSource code')
+    expect(parsed.pages[0].edges[0].data).toMatchObject({ label: 'HTTPS', description: 'Fetch source\nfrom the repository' })
+    const copied = parseClipboard(serializeClipboard(copySelection(state().nodes, state().edges)!))
+    expect(copied.nodes[0].data.label).toBe('github\nSource code')
+    expect(copied.edges[0].data).toMatchObject({ label: 'HTTPS', description: 'Fetch source\nfrom the repository' })
+    state().undo()
+    expect(state().edges[0].data?.label).toBe('')
+    expect(state().edges[0].data?.description).toBeUndefined()
+    state().undo()
+    expect(state().nodes[0].data.label).toBe('Logo')
+    state().redo()
+    state().redo()
+    expect(state().edges[0].data).toMatchObject({ label: 'HTTPS', description: 'Fetch source\nfrom the repository' })
   })
 
   it('preserves local image and icon geometry during a resize while accepting remote labels', () => {

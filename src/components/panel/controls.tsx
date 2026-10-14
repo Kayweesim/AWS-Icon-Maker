@@ -93,33 +93,43 @@ export function TextField({
   label,
   value,
   placeholder,
+  multiline = false,
   onCommit,
 }: {
   label: string
   value: string
   placeholder?: string
+  multiline?: boolean
   onCommit: (value: string) => void
 }) {
   // The draft remembers which value it was based on, so outside changes (undo, canvas edits) reset it.
   const [draft, setDraft] = useState({ base: value, text: value })
   const text = draft.base === value ? draft.text : value
+  const Control = multiline ? 'textarea' : 'input'
 
   return (
     <Field label={label}>
-      <input
+      <Control
         aria-label={label}
+        rows={multiline ? 3 : undefined}
         value={text}
         placeholder={placeholder}
         onChange={(e) => setDraft({ base: value, text: e.target.value })}
-        onBlur={() => text !== value && onCommit(text.trim())}
+        onBlur={() => {
+          setDraft({ base: value, text: value })
+          if (text.trim() !== value) onCommit(text.trim())
+        }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            e.currentTarget.blur()
+          }
           if (e.key === 'Escape') {
             setDraft({ base: value, text: value })
-            requestAnimationFrame(() => (e.target as HTMLInputElement).blur())
+            requestAnimationFrame(() => (e.target as HTMLInputElement | HTMLTextAreaElement).blur())
           }
         }}
-        className={inputClass}
+        className={`${inputClass}${multiline ? ' resize-y' : ''}`}
       />
     </Field>
   )

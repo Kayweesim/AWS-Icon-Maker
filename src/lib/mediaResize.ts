@@ -1,6 +1,6 @@
 import type { XYPosition } from '@xyflow/react'
 import { MAX_ICON_SIZE, MAX_IMAGE_SIZE, MIN_ICON_SIZE, MIN_IMAGE_SIZE } from '../layout/config'
-import { iconNodeWidth, iconSizeOf } from '../layout/sizes'
+import { iconNodeWidth, iconSizeOf, imageNodeWidth, imageSizeOf } from '../layout/sizes'
 import type { IconNode, ImageNode } from '../types'
 
 export type MediaNode = IconNode | ImageNode
@@ -11,7 +11,7 @@ const CENTRE = { x: 0.5, y: 0.5 }
 
 export const mediaSize = (node: MediaNode): MediaSize => node.type === 'icon'
   ? { width: iconSizeOf(node), height: iconSizeOf(node) }
-  : { width: node.width ?? 160, height: node.height ?? 160 }
+  : imageSizeOf(node)
 
 export const mediaLimits = (type: MediaNode['type']) => type === 'icon'
   ? { min: MIN_ICON_SIZE, max: MAX_ICON_SIZE }
@@ -33,15 +33,16 @@ export function cornerSize(size: MediaSize, delta: XYPosition, direction: XYPosi
   return proportionalSize(size, size.width * scale, 'width', type)
 }
 
-/** Update artwork geometry without resizing an icon's label or moving the opposite corner. */
+/** Update artwork geometry without resizing its label or moving the opposite corner. */
 export function resizeMediaNode(node: MediaNode, requested: MediaSize, anchor: ResizeAnchor = CENTRE): MediaNode {
   if (![requested.width, requested.height, anchor.x, anchor.y].every(Number.isFinite)) return node
   const before = mediaSize(node), { min, max } = mediaLimits(node.type)
   const width = Math.max(min, Math.min(max, Math.round(requested.width)))
   const height = node.type === 'icon' ? width : Math.max(min, Math.min(max, Math.round(requested.height)))
   if (before.width === width && before.height === height) return node
-  const beforeInset = node.type === 'icon' ? (iconNodeWidth(before.width) - before.width) / 2 : 0
-  const afterInset = node.type === 'icon' ? (iconNodeWidth(width) - width) / 2 : 0
+  const nodeWidth = node.type === 'icon' ? iconNodeWidth : imageNodeWidth
+  const beforeInset = (nodeWidth(before.width) - before.width) / 2
+  const afterInset = (nodeWidth(width) - width) / 2
   const position = {
     x: node.position.x + beforeInset - afterInset + (before.width - width) * anchor.x,
     y: node.position.y + (before.height - height) * anchor.y,
@@ -51,5 +52,5 @@ export function resizeMediaNode(node: MediaNode, requested: MediaSize, anchor: R
     // Keep cached geometry consistent until React Flow's ResizeObserver measures the DOM.
     measured: node.measured ? { width: iconNodeWidth(width), height: (node.measured.height ?? before.height) + height - before.height } : undefined,
   }
-  return { ...node, position, width, height, measured: node.measured ? { width, height } : undefined }
+  return { ...node, position, width, height, measured: node.measured ? { width: imageNodeWidth(width), height: (node.measured.height ?? before.height) + height - before.height } : undefined }
 }

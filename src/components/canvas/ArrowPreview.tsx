@@ -12,8 +12,9 @@ export function ArrowPreview({ sourceId, pointer, preset }: Props) {
   const { x, y } = node.internals.positionAbsolute
   const width = node.measured.width ?? 0
   const height = node.measured.height ?? 0
-  const iconSize = node.type === 'icon' ? ((node.data as { iconSize?: number }).iconSize ?? LEGACY_ICON_SIZE) : height
-  const start = { x: x + width / 2, y: y + (node.type === 'icon' ? iconSize / 2 : height / 2) }
+  const artworkHeight = node.type === 'icon' ? ((node.data as { iconSize?: number }).iconSize ?? LEGACY_ICON_SIZE)
+    : node.type === 'image' ? (node.height ?? 160) : height
+  const start = { x: x + width / 2, y: y + artworkHeight / 2 }
   const { dashed } = arrowPreset(preset).style
 
   return (

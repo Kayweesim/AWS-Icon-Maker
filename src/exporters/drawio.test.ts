@@ -73,7 +73,23 @@ describe('exportDrawio', () => {
     assertWellFormedXml(out)
     expect(cell(out, 'image')).toContain('shape=image')
     expect(cell(out, 'image')).toContain('image=data:image/png,AAEC/w==')
+    expect(cell(out, 'image')).toContain('value="architecture"')
+    expect(cell(out, 'image')).toContain('verticalLabelPosition=bottom')
     expect(cell(out, 'image')).toContain('<mxGeometry x="24" y="40" width="320" height="160"')
+  })
+
+  it('exports small image captions and attaches arrows below them without stretching the image', () => {
+    const nodes: AppNode[] = [
+      { id: 'logo', type: 'image', position: { x: 0, y: 0 }, width: 32, height: 16, data: { label: 'Git & hub\nLogo', src: 'data:image/png;base64,AAEC/w==' } },
+      { id: 'target', type: 'image', position: { x: 200, y: 200 }, width: 100, height: 100, data: { label: '', src: 'data:image/png;base64,AAEC/w==' } },
+    ]
+    const edges: AppEdge[] = [{ id: 'flow', type: 'aws', source: 'logo', target: 'target', sourceHandle: 'bottom', targetHandle: 'top', data: { label: 'HTTPS\nAPI request', pathType: 'step', arrows: 'end', dashed: false } }]
+    const out = exportDrawio({ name: 'Captions', nodes, edges })
+    assertWellFormedXml(out)
+    expect(cell(out, 'logo')).toContain('value="Git &amp;amp; hub&lt;br&gt;Logo"')
+    expect(cell(out, 'logo')).toContain('<mxGeometry x="32" y="0" width="32" height="16"')
+    expect(cell(out, 'flow')).toContain('exitDy=36')
+    expect(cell(out, 'flow')).toContain('value="HTTPS&lt;br&gt;API request"')
   })
 
   it('keeps arrow labels, styles and connection sides', () => {

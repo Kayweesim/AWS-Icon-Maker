@@ -16,7 +16,7 @@ import { applyLayoutResult } from '../layout/apply'
 import { ICON_SIZE, LAYOUT_ANIMATION_MS, TEXT_FONT_SIZE } from '../layout/config'
 import type { HandleSide } from '../layout/handles'
 import { facingHandles } from '../layout/shared'
-import { iconNodeWidth, iconSizeOf } from '../layout/sizes'
+import { iconNodeWidth, iconSizeOf, imageNodeWidth } from '../layout/sizes'
 import { isEmptyLayout, type LayoutResult } from '../layout/types'
 import { animate, interpolateNodes } from '../lib/animation'
 import { cloneClipboard, copySelection, selectionWithDescendants, type ClipboardData } from '../lib/clipboard'
@@ -24,7 +24,7 @@ import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSiz
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
 import type { PreparedImage } from '../lib/imageDrop'
-import { resizeMediaNode, type MediaSize, type ResizeAnchor } from '../lib/mediaResize'
+import { mediaSize, resizeMediaNode, type MediaSize, type ResizeAnchor } from '../lib/mediaResize'
 import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
 import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc } from '../types'
 
@@ -217,10 +217,11 @@ function reparent(nodes: AppNode[], ids: string[]): AppNode[] {
   return changed ? sortNodes(nodes) : nodes
 }
 
-/** Where arrows attach: the icon's centre for services, the box centre otherwise. */
+/** Choose connection sides using the artwork centre, excluding captions. */
 function connectionPoint(node: AppNode, byId: Map<string, AppNode>): XYPosition {
   const rect = absoluteRect(node, byId)
-  const y = node.type === 'icon' ? rect.y + iconSizeOf(node) / 2 : rect.y + rect.height / 2
+  const height = node.type === 'icon' ? iconSizeOf(node) : node.type === 'image' ? mediaSize(node).height : rect.height
+  const y = rect.y + height / 2
   return { x: rect.x + rect.width / 2, y }
 }
 
@@ -326,7 +327,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
           id: newId('i'),
           type: 'image',
           position: {
-            x: snapToGrid(centre.x - image.width / 2),
+            x: snapToGrid(centre.x - imageNodeWidth(image.width) / 2),
             y: snapToGrid(centre.y - image.height / 2),
           },
           width: image.width,

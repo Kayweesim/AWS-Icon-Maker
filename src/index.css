@@ -78,6 +78,13 @@ body {
   opacity: 1;
 }
 
+/* Saved image dimensions are artwork-only. Measure the full content (including its caption)
+   for selection, connections and exports instead of React Flow's inline width/height. */
+.react-flow__node-image {
+  width: max-content !important;
+  height: max-content !important;
+}
+
 /*
  * Groups only respond to their header (top-left icon and label), resize controls and connection
  * handles. Clicks anywhere else inside reach the services they contain, or the canvas.

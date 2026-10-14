@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { iconNodeWidth } from '../layout/sizes'
+import { iconNodeWidth, imageNodeWidth } from '../layout/sizes'
 import type { IconNode, ImageNode } from '../types'
 import { cornerSize, mediaSize, proportionalSize, resizeMediaNode } from './mediaResize'
 
@@ -26,7 +26,7 @@ describe('proportional media resizing', () => {
 
   it('resizes an image about its centre by default', () => {
     const resized = resizeMediaNode(image, { width: 80, height: 40 })
-    expect(resized.position).toEqual({ x: 220, y: 260 })
+    expect(resized.position).toEqual({ x: 212, y: 260 })
     expect(mediaSize(resized)).toEqual({ width: 80, height: 40 })
     expect(resized.data).toBe(image.data)
   })
@@ -51,11 +51,19 @@ describe('proportional media resizing', () => {
     }
   })
 
+  it('keeps image artwork corners fixed when shrinking below the caption width', () => {
+    for (const width of [16, 80, 128]) for (const x of [0, 0.5, 1]) {
+      const resized = resizeMediaNode(image, { width, height: width / 2 }, { x, y: 0 })
+      expect(resized.position.x + (imageNodeWidth(width) - width) / 2 + width * x).toBe(image.position.x + 320 * x)
+      expect(resized.position.y).toBe(image.position.y)
+    }
+  })
+
   it('updates cached dimensions without stretching icon labels', () => {
     const resized = resizeMediaNode({ ...icon, measured: { width: 96, height: 100 } }, { width: 128, height: 128 })
     expect(resized.measured).toEqual({ width: 128, height: 164 })
-    const resizedImage = resizeMediaNode({ ...image, measured: { width: 320, height: 160 } }, { width: 80, height: 40 })
-    expect(resizedImage.measured).toEqual({ width: 80, height: 40 })
+    const resizedImage = resizeMediaNode({ ...image, measured: { width: 320, height: 181 } }, { width: 80, height: 40 })
+    expect(resizedImage.measured).toEqual({ width: 96, height: 61 })
   })
 
   it('clamps geometry to persistence limits and rejects non-finite edits', () => {

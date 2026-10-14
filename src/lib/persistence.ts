@@ -121,7 +121,7 @@ function parseNode(raw: unknown, index: number): AppNode {
       type: 'image',
       width: raw.width,
       height: raw.height,
-      data: { label: str(data.label, 'Image') || 'Image', src },
+      data: { label: str(data.label, 'Image'), src },
     }
   }
 
@@ -136,6 +136,7 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
   const edgeData: AwsEdgeData = {
     ...DEFAULT_EDGE_DATA,
     label: str(data.label),
+    ...(typeof data.description === 'string' && { description: data.description }),
     dashed: data.dashed === true,
     pathType: PATH_TYPES.includes(data.pathType as EdgePathType) ? (data.pathType as EdgePathType) : 'step',
     arrows: ARROWS.includes(data.arrows as EdgeArrows) ? (data.arrows as EdgeArrows) : 'end',

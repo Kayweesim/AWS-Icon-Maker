@@ -55,6 +55,7 @@ export function IconProperties({ node }: { node: IconNode }) {
 
 export function ImageProperties({ node }: { node: ImageNode }) {
   const resizeMedia = useDiagramStore((s) => s.resizeMedia)
+  const updateNodeData = useDiagramStore((s) => s.updateNodeData)
   const size = mediaSize(node)
   return (
     <>
@@ -64,6 +65,8 @@ export function ImageProperties({ node }: { node: ImageNode }) {
           {node.data.label}
         </span>
       </div>
+      <TextField key={node.id} label="Name / description" value={node.data.label} placeholder="Image name" multiline onCommit={(label) => updateNodeData(node.id, { label })} />
+      <p className="text-[12px] leading-snug text-zinc-500">Shown below the image. You can also double-click it to edit.</p>
       <div className="grid grid-cols-2 gap-2">
         {(['width', 'height'] as const).map((axis) => (
           <NumberField

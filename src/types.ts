@@ -37,6 +37,8 @@ export type EdgeArrows = 'end' | 'both' | 'none'
 
 export type AwsEdgeData = {
   label: string
+  /** Optional connection notes, separate from the label rendered on the canvas. */
+  description?: string
   dashed: boolean
   pathType: EdgePathType
   arrows: EdgeArrows
