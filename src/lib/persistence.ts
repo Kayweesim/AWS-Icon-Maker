@@ -138,6 +138,9 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
     dashed: data.dashed === true,
     pathType: PATH_TYPES.includes(data.pathType as EdgePathType) ? (data.pathType as EdgePathType) : 'step',
     arrows: ARROWS.includes(data.arrows as EdgeArrows) ? (data.arrows as EdgeArrows) : 'end',
+    ...(Array.isArray(data.elbowOffsets) && data.elbowOffsets.length > 0 && data.elbowOffsets.length <= 16 &&
+      data.elbowOffsets.every((value) => isNumber(value) && Math.abs(value) <= 1_000_000)
+      ? { elbowOffsets: [...data.elbowOffsets] as number[] } : {}),
   }
   return {
     id: str(raw.id) || `e_${raw.source}_${raw.target}_${Math.random().toString(36).slice(2, 8)}`,

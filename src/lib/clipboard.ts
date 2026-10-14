@@ -1,5 +1,6 @@
+import type { XYPosition } from '@xyflow/react'
 import type { AppEdge, AppNode } from '../types'
-import { absolutePosition, descendantIds } from './geometry'
+import { absolutePosition, absoluteRect, descendantIds } from './geometry'
 import { newId } from './ids'
 
 export type ClipboardData = { nodes: AppNode[]; edges: AppEdge[] }
@@ -36,15 +37,27 @@ export function copySelection(nodes: AppNode[], edges: AppEdge[]): ClipboardData
 }
 
 /** Clones clipboard contents with fresh ids, offset from the originals and selected. */
-export function cloneClipboard(data: ClipboardData, offset: number) {
+export function cloneClipboard(data: ClipboardData, offset: number, centre?: XYPosition) {
   const idMap = new Map(data.nodes.map((n) => [n.id, newId(n.type === 'awsGroup' ? 'g' : 'n')]))
+  let dx = offset, dy = offset
+  if (centre && data.nodes.length) {
+    const byId = new Map(data.nodes.map((node) => [node.id, node]))
+    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity
+    for (const node of data.nodes) {
+      const rect = absoluteRect(node, byId)
+      left = Math.min(left, rect.x); top = Math.min(top, rect.y)
+      right = Math.max(right, rect.x + rect.width); bottom = Math.max(bottom, rect.y + rect.height)
+    }
+    dx += centre.x - (left + right) / 2
+    dy += centre.y - (top + bottom) / 2
+  }
 
   const nodes = data.nodes.map(
     (n): AppNode => ({
       ...n,
       id: idMap.get(n.id)!,
       parentId: n.parentId ? idMap.get(n.parentId) : undefined,
-      position: n.parentId ? n.position : { x: n.position.x + offset, y: n.position.y + offset },
+      position: n.parentId ? n.position : { x: n.position.x + dx, y: n.position.y + dy },
       selected: !n.parentId,
     }),
   )

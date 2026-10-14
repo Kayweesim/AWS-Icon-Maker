@@ -3,6 +3,7 @@ import { DRAG_MIME } from '../types'
 import {
   acceptsCanvasDrop,
   firstDroppedImage,
+  firstPastedImage,
   fitImageSize,
   imageFileToDataUrl,
   imageMimeType,
@@ -11,12 +12,50 @@ import {
 } from './imageDrop'
 
 describe('image drops', () => {
-  it('accepts palette and image-file drags without claiming known non-image files', () => {
+  it('reads a clipboard screenshot without needing a filename extension', () => {
+    const image = new File(['pixels'], 'image', { type: 'image/png' })
+    const transfer = { files: [image], items: [] } as unknown as DataTransfer
+    expect(firstPastedImage(transfer)).toBe(image)
+  })
+
+  it('falls back to clipboard file items and ignores HTML or text', () => {
+    const image = new File(['pixels'], 'image.png', { type: 'image/png' })
+    const items = [
+      { kind: 'string', type: 'text/html', getAsFile: () => null },
+      { kind: 'file', type: 'image/png', getAsFile: () => image },
+    ]
+    expect(firstPastedImage({ files: [], items } as unknown as DataTransfer)).toBe(image)
+    expect(firstPastedImage({ files: [], items: items.slice(0, 1) } as unknown as DataTransfer)).toBeNull()
+    expect(firstPastedImage({ files: [], items: [{ kind: 'file', getAsFile: () => null }] } as unknown as DataTransfer)).toBeNull()
+  })
+
+  it('accepts file drags before validating their contents on drop', () => {
     expect(acceptsCanvasDrop({ types: [DRAG_MIME] })).toBe(true)
     expect(acceptsCanvasDrop({ types: ['Files'] })).toBe(true)
     expect(acceptsCanvasDrop({ types: ['Files'], items: [{ kind: 'file', type: 'image/png' }] })).toBe(true)
-    expect(acceptsCanvasDrop({ types: ['Files'], items: [{ kind: 'file', type: 'text/plain' }] })).toBe(false)
+    expect(acceptsCanvasDrop({ types: ['Files'], items: [{ kind: 'file', type: 'text/plain' }] })).toBe(true)
+    expect(acceptsCanvasDrop({ types: ['Files'], items: [{ kind: 'file', type: 'application/octet-stream' }] })).toBe(true)
+    expect(acceptsCanvasDrop({ types: [], items: [{ kind: 'file', type: '' }] })).toBe(true)
     expect(acceptsCanvasDrop({ types: ['text/plain'] })).toBe(false)
+  })
+
+  it('accepts SVG files including generic Finder MIME types', () => {
+    const svg = new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], 'diagram.svg', { type: 'application/octet-stream' })
+    expect(firstDroppedImage({ files: [svg] })).toBe(svg)
+    expect(imageMimeType(svg)).toBe('image/svg+xml')
+  })
+
+  it('detects SVG contents even if the extension was changed to JPG', async () => {
+    const file = new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], 'diagram.jpg', { type: 'image/jpeg' })
+    expect(await imageFileToDataUrl(file)).toMatch(/^data:image\/svg\+xml;base64,/)
+    // Only the rasterised result may enter persisted/shared documents.
+    expect(isEmbeddedImageDataUrl(await imageFileToDataUrl(file))).toBe(false)
+  })
+
+  it('rejects oversized and empty files before decoding', async () => {
+    const oversized = { name: 'large.png', type: 'image/png', size: 21 * 1024 * 1024 } as File
+    await expect(imageFileToDataUrl(oversized)).rejects.toThrow('20 MB')
+    await expect(imageFileToDataUrl(new File([], 'empty.png'))).rejects.toThrow('non-empty')
   })
 
   it('selects the first supported image and can infer a missing MIME type', () => {

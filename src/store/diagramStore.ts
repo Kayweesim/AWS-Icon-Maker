@@ -14,6 +14,7 @@ import { ARROW_PRESETS, arrowPreset, DEFAULT_ARROW_PRESET, type ArrowPresetId } 
 import { groupStyle, type GroupType } from '../data/groups'
 import { applyLayoutResult } from '../layout/apply'
 import { ICON_SIZE, LAYOUT_ANIMATION_MS, TEXT_FONT_SIZE } from '../layout/config'
+import type { HandleSide } from '../layout/handles'
 import { facingHandles } from '../layout/shared'
 import { iconNodeWidth, iconSizeOf } from '../layout/sizes'
 import { isEmptyLayout, type LayoutResult } from '../layout/types'
@@ -82,6 +83,8 @@ export type DiagramState = {
   updateEdgeData: (id: string, patch: Partial<AwsEdgeData>) => void
   /** Applies the same change to several edges as a single undo step. */
   updateEdgesData: (ids: string[], patch: Partial<AwsEdgeData>) => void
+  /** Reconnects selected arrows around the same side of both nodes, or restores facing sides. */
+  routeEdges: (ids: string[], side: HandleSide | 'auto') => void
   /** Resizes icons around their centres as a single undo step. */
   setIconSize: (ids: string[], size: number) => void
   setEditingId: (id: string | null) => void
@@ -113,7 +116,7 @@ export type DiagramState = {
   nudgeSelection: (dx: number, dy: number) => void
   copy: () => void
   cut: () => void
-  paste: () => void
+  paste: (selection?: ClipboardData, centre?: XYPosition) => void
   duplicate: () => void
 
   undo: () => void
@@ -241,7 +244,7 @@ const currentPage = (state: Pick<DiagramState, 'nodes' | 'edges' | 'past' | 'fut
   future: state.future,
 })
 
-let pendingSnapshot: Snapshot | null = null
+let pendingSnapshot: { pageId: string; snapshot: Snapshot } | null = null
 let pasteCount = 0
 // Jumps a running layout animation to its end state.
 let finishLayoutAnimation: (() => void) | null = null
@@ -252,6 +255,8 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
   /** History entries for an edit about to replace the current diagram. */
   const record = (snapshot?: Snapshot) => {
     finishLayoutAnimation?.()
+    // Continuous edits publish live but become a single undo step on release.
+    if (!snapshot && pendingSnapshot?.pageId === get().activePageId) return {}
     return {
       past: [...get().past, snapshot ?? { nodes: get().nodes, edges: get().edges }].slice(-HISTORY_LIMIT),
       future: [],
@@ -412,6 +417,27 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
           targets.has(e.id) ? { ...e, data: { ...DEFAULT_EDGE_DATA, ...e.data, ...patch } } : e,
         ),
       })
+    },
+
+    routeEdges: (ids, side) => {
+      const targets = new Set(ids)
+      const byId = new Map(get().nodes.map((node) => [node.id, node]))
+      const elbowOffsets = side === 'auto' ? undefined : [side === 'top' || side === 'left' ? -60 : 60]
+      let changed = false
+      const edges = get().edges.map((edge) => {
+        if (!targets.has(edge.id)) return edge
+        const source = byId.get(edge.source), target = byId.get(edge.target)
+        if (!source || !target) return edge
+        const handles = side === 'auto'
+          ? facingHandles(connectionPoint(source, byId), connectionPoint(target, byId))
+          : { sourceHandle: side, targetHandle: side }
+        const data = { ...DEFAULT_EDGE_DATA, ...edge.data, pathType: 'step' as const, elbowOffsets }
+        if (edge.sourceHandle === handles.sourceHandle && edge.targetHandle === handles.targetHandle &&
+          edge.data?.pathType === 'step' && JSON.stringify(edge.data?.elbowOffsets) === JSON.stringify(elbowOffsets)) return edge
+        changed = true
+        return { ...edge, ...handles, data }
+      })
+      if (changed) set({ ...record(), edges })
     },
 
     setIconSize: (ids, size) => {
@@ -592,14 +618,15 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       get().deleteSelection()
     },
 
-    paste: () => {
-      const { clipboard } = get()
+    paste: (selection, centre) => {
+      const clipboard = selection ?? get().clipboard
       if (!clipboard) return
+      if (selection && selection !== get().clipboard) pasteCount = 0
       pasteCount++
-      const pasted = cloneClipboard(clipboard, pasteCount * GRID_SIZE * 3)
+      const pasted = cloneClipboard(clipboard, (centre ? pasteCount - 1 : pasteCount) * GRID_SIZE * 3, centre)
       const history = record()
       const nodes = reparent(sortNodes([...deselectAll(get().nodes), ...pasted.nodes]), pasted.topLevelIds)
-      set({ ...history, nodes, edges: [...deselectAll(get().edges), ...pasted.edges] })
+      set({ ...history, clipboard, nodes, edges: [...deselectAll(get().edges), ...pasted.edges] })
     },
 
     duplicate: () => {
@@ -629,14 +656,14 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
 
     beginHistoryBatch: () => {
       finishLayoutAnimation?.()
-      pendingSnapshot = { nodes: get().nodes, edges: get().edges }
+      pendingSnapshot = { pageId: get().activePageId, snapshot: { nodes: get().nodes, edges: get().edges } }
     },
 
     endHistoryBatch: () => {
-      const snapshot = pendingSnapshot
+      const pending = pendingSnapshot
       pendingSnapshot = null
-      if (snapshot && snapshotKey(snapshot) !== snapshotKey({ nodes: get().nodes, edges: get().edges })) {
-        set(record(snapshot))
+      if (pending && pending.pageId === get().activePageId && snapshotKey(pending.snapshot) !== snapshotKey({ nodes: get().nodes, edges: get().edges })) {
+        set(record(pending.snapshot))
       }
     },
 
@@ -659,6 +686,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     setName: (name) => set({ name }),
 
     addPage: () => {
+      get().endHistoryBatch()
       const { pages, activePageId } = get()
       const page: PageTab = { id: newId('p'), name: nextPageName(pages) }
       const at = pages.findIndex((p) => p.id === activePageId)
@@ -700,6 +728,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     selectPage: (id) => {
       const { activePageId, pages, parked } = get()
       if (id === activePageId || !pages.some((p) => p.id === id)) return
+      get().endHistoryBatch()
       finishLayoutAnimation?.()
       const opened = parked[id] ?? EMPTY_PAGE
       const rest = { ...parked, [activePageId]: currentPage(get()) }

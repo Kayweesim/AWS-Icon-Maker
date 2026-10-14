@@ -61,9 +61,7 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers = {}) {
         if (key === 'z' && event.shiftKey) return run(store.redo)
         if (key === 'z') return run(store.undo)
         if (key === 'y') return run(store.redo)
-        if (key === 'c') return run(store.copy)
-        if (key === 'x') return run(store.cut)
-        if (key === 'v') return run(store.paste)
+        // Copy/cut/paste use native ClipboardEvents so pasted images reach the canvas.
         if (key === 'd') return run(store.duplicate)
         if (key === 'a') return run(store.selectAll)
         if (key === 's' && handlers.save) return run(handlers.save)

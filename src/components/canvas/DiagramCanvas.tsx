@@ -12,10 +12,11 @@ import {
   type NodeTypes,
   type XYPosition,
 } from '@xyflow/react'
-import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import { useCallback, useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { useCursorBroadcast } from '../../collab/useCursors'
 import { groupStyle } from '../../data/groups'
-import { acceptsCanvasDrop, firstDroppedImage, prepareDroppedImage } from '../../lib/imageDrop'
+import { useCanvasClipboard } from '../../hooks/useCanvasClipboard'
+import { acceptsCanvasDrop, firstDroppedImage, IMAGE_DROP_FORMATS, prepareDroppedImage } from '../../lib/imageDrop'
 import { setCanvasPointer } from '../../lib/pointer'
 import { useDiagramStore } from '../../store/diagramStore'
 import { DRAG_MIME, GRID_SIZE, type AppNode, type PaletteDragItem } from '../../types'
@@ -24,6 +25,7 @@ import { GroupNode } from '../nodes/GroupNode'
 import { IconNode } from '../nodes/IconNode'
 import { ImageNode } from '../nodes/ImageNode'
 import { TextNode } from '../nodes/TextNode'
+import { NoticeToast } from '../toolbar/NoticeToast'
 import { ArrowPreview } from './ArrowPreview'
 import { Cursors } from './Cursors'
 import { RemoteSelections } from './RemoteSelections'
@@ -63,6 +65,21 @@ export function DiagramCanvas() {
   const { screenToFlowPosition } = useReactFlow()
   const cursor = useCursorBroadcast()
   const [pointer, setPointer] = useState<XYPosition | null>(null)
+  const [dropError, setDropError] = useState<string | null>(null)
+  const importImage = useCallback((file: File, point: XYPosition) => {
+    setDropError(null)
+    const pageId = useDiagramStore.getState().activePageId
+    void prepareDroppedImage(file)
+      .then((image) => {
+        if (useDiagramStore.getState().activePageId !== pageId) {
+          setDropError('The page changed while loading the image. Add it again on the intended page.')
+          return
+        }
+        addImageNode(image, point)
+      })
+      .catch((error: unknown) => setDropError(error instanceof Error ? error.message : 'Could not import this image'))
+  }, [addImageNode])
+  useCanvasClipboard(importImage, setDropError)
   // Set during a Shift+drag box selection. When it ends, only services, text and the arrows
   // between them stay selected, so they can be moved without the groups around them.
   const servicesOnly = useRef(false)
@@ -106,12 +123,15 @@ export function DiagramCanvas() {
       return
     }
 
-    const file = firstDroppedImage(event.dataTransfer)
-    if (!file) return
+    if (!acceptsCanvasDrop(event.dataTransfer)) return
     event.preventDefault()
-    void prepareDroppedImage(file)
-      .then((image) => addImageNode(image, point))
-      .catch(() => {})
+    setDropError(null)
+    const file = firstDroppedImage(event.dataTransfer)
+    if (!file) {
+      setDropError(`Unsupported or empty file. Drop a ${IMAGE_DROP_FORMATS} image.`)
+      return
+    }
+    importImage(file, point)
   }
 
   const onMouseMove = (event: MouseEvent) => {
@@ -206,6 +226,7 @@ export function DiagramCanvas() {
       />
       <RemoteSelections nodes={nodes} />
       <Cursors />
+      <NoticeToast notice={dropError ? { kind: 'error', text: dropError } : null} onDismiss={() => setDropError(null)} />
       {tool.kind === 'arrow' && tool.sourceId && pointer && (
         <ArrowPreview sourceId={tool.sourceId} pointer={pointer} preset={tool.preset} />
       )}

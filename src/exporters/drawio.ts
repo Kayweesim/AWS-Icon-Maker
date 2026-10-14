@@ -8,6 +8,10 @@ import { LABEL_WIDTH, TEXT_FONT_SIZE } from '../layout/config'
 import { parseHandle } from '../layout/handles'
 import { buildTree } from '../layout/shared'
 import { iconNodeWidth, iconSizeOf, layoutSize } from '../layout/sizes'
+import { Position } from '@xyflow/react'
+import { absolutePosition } from '../lib/geometry'
+import { elbowRoute } from '../lib/elbowRoute'
+import { parallelEdgeOffsets } from '../lib/parallelEdges'
 import type { AppEdge, AppNode, IconNode, ImageNode } from '../types'
 
 export type DrawioInput = { name: string; nodes: AppNode[]; edges: AppEdge[] }
@@ -125,6 +129,30 @@ function edgeCellStyle(edge: AppEdge, source: AppNode, target: AppNode) {
 const geometry = (x: number, y: number, width: number, height: number) =>
   `<mxGeometry x="${Math.round(x)}" y="${Math.round(y)}" width="${Math.round(width)}" height="${Math.round(height)}" as="geometry" />`
 
+function edgeGeometry(edge: AppEdge, source: AppNode, target: AppNode, nodes: Map<string, AppNode>, offset: number) {
+  if ((edge.data?.pathType ?? 'step') !== 'step' || !edge.data?.elbowOffsets) return '  <mxGeometry relative="1" as="geometry" />'
+  const endpoint = (node: AppNode, handle: string | null | undefined, fallback: Position) => {
+    const position = absolutePosition(node, nodes)
+    const size = layoutSize(node)
+    const parsed = parseHandle(handle)
+    const side = (parsed?.side ?? fallback) as Position
+    const fraction = parsed?.fraction ?? 0.5
+    const horizontal = side === Position.Left || side === Position.Right
+    const iconSize = node.type === 'icon' ? iconSizeOf(node) : size.width
+    const left = node.type === 'icon' ? (size.width - iconSize) / 2 : 0
+    return {
+      x: position.x + (horizontal ? left + (side === Position.Right ? iconSize : 0) : size.width * fraction) + (horizontal ? 0 : offset),
+      y: position.y + (horizontal ? (node.type === 'icon' ? iconSize : size.height) * fraction : side === Position.Bottom ? size.height : 0) + (horizontal ? offset : 0),
+      side,
+    }
+  }
+  const start = endpoint(source, edge.sourceHandle, Position.Bottom)
+  const end = endpoint(target, edge.targetHandle, Position.Top)
+  const route = elbowRoute({ sourceX: start.x, sourceY: start.y, targetX: end.x, targetY: end.y, sourcePosition: start.side, targetPosition: end.side }, edge.data.elbowOffsets)
+  const points = route.points.slice(1, -1).map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')
+  return `  <mxGeometry relative="1" as="geometry"><Array as="points">${points}</Array></mxGeometry>`
+}
+
 export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconImages = {}): string {
   const tree = buildTree(nodes ?? [])
   // draw.io needs parents before children.
@@ -156,6 +184,7 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
     }
   }
 
+  const offsets = parallelEdgeOffsets(edges ?? [])
   for (const edge of edges ?? []) {
     const source = tree.byId.get(edge.source)
     const target = tree.byId.get(edge.target)
@@ -163,7 +192,7 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
     if (!source || !target || !edge.id) continue
     cells.push(
       `<mxCell id="${attr(cellId(edge.id))}" value="${attr(htmlLabel(edge.data?.label ?? ''))}" style="${attr(edgeCellStyle(edge, source, target))}" edge="1" parent="1" source="${attr(cellId(source.id))}" target="${attr(cellId(target.id))}">`,
-      '  <mxGeometry relative="1" as="geometry" />',
+      edgeGeometry(edge, source, target, tree.byId, offsets.get(edge.id) ?? 0),
       '</mxCell>',
     )
   }
