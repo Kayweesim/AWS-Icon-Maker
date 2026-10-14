@@ -26,7 +26,12 @@ export function mergeRemote(local: Local, remote: Pick<DiagramPage, 'nodes' | 'e
       measured: mine.measured,
     } as AppNode
     if (!isBusy(mine)) return kept
-    return { ...kept, position: mine.position, width: mine.width, height: mine.height, parentId: mine.parentId }
+    const held = { ...kept, position: mine.position, width: mine.width, height: mine.height, parentId: mine.parentId }
+    // Icon geometry lives in data rather than width/height; keep it under the active resize too.
+    if (mine.resizing && mine.type === 'icon' && held.type === 'icon') {
+      return { ...held, data: { ...held.data, iconSize: mine.data.iconSize } }
+    }
+    return held
   })
 
   // A node this user is still dragging hasn't reached the room yet; don't let it blink out.

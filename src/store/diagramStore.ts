@@ -24,6 +24,7 @@ import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSiz
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
 import type { PreparedImage } from '../lib/imageDrop'
+import { resizeMediaNode, type MediaSize, type ResizeAnchor } from '../lib/mediaResize'
 import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
 import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc } from '../types'
 
@@ -87,6 +88,7 @@ export type DiagramState = {
   routeEdges: (ids: string[], side: HandleSide | 'auto') => void
   /** Resizes icons around their centres as a single undo step. */
   setIconSize: (ids: string[], size: number) => void
+  resizeMedia: (id: string, size: MediaSize, anchor?: ResizeAnchor) => void
   setEditingId: (id: string | null) => void
 
   /** Arrow mode, starting from the selected node if exactly one is selected. */
@@ -442,18 +444,16 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
 
     setIconSize: (ids, size) => {
       const targets = new Set(ids)
-      const needsChange = (n: AppNode) => targets.has(n.id) && n.type === 'icon' && iconSizeOf(n) !== size
-      if (!get().nodes.some(needsChange)) return
-      set({
-        ...record(),
-        nodes: get().nodes.map((n) => {
-          if (!needsChange(n) || n.type !== 'icon') return n
-          const current = iconSizeOf(n)
-          const dx = (iconNodeWidth(current) - iconNodeWidth(size)) / 2
-          const dy = (current - size) / 2
-          return { ...n, position: { x: n.position.x + dx, y: n.position.y + dy }, data: { ...n.data, iconSize: size } }
-        }),
-      })
+      const nodes = get().nodes.map((node) => targets.has(node.id) && node.type === 'icon'
+        ? resizeMediaNode(node, { width: size, height: size }) : node)
+      if (nodes.some((node, index) => node !== get().nodes[index])) set({ ...record(), nodes })
+    },
+
+    resizeMedia: (id, size, anchor) => {
+      const node = get().nodes.find((n) => n.id === id)
+      if (!node || (node.type !== 'icon' && node.type !== 'image')) return
+      const resized = resizeMediaNode(node, size, anchor)
+      if (resized !== node) set({ ...record(), nodes: get().nodes.map((n) => n.id === id ? resized : n) })
     },
 
     setEditingId: (editingId) => set({ editingId }),
@@ -662,6 +662,10 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     endHistoryBatch: () => {
       const pending = pendingSnapshot
       pendingSnapshot = null
+      // Also release resize ownership when a gesture ends by switching pages or unmounting.
+      if (get().nodes.some((node) => node.resizing)) {
+        set({ nodes: get().nodes.map((node) => node.resizing ? { ...node, resizing: false } : node) })
+      }
       if (pending && pending.pageId === get().activePageId && snapshotKey(pending.snapshot) !== snapshotKey({ nodes: get().nodes, edges: get().edges })) {
         set(record(pending.snapshot))
       }

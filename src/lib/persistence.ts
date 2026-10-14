@@ -1,5 +1,6 @@
 import { GROUP_STYLES, type GroupType } from '../data/groups'
 import { parseHandle } from '../layout/handles'
+import { MAX_ICON_SIZE, MAX_IMAGE_SIZE, MIN_ICON_SIZE, MIN_IMAGE_SIZE } from '../layout/config'
 import { newId } from './ids'
 import { DEFAULT_EDGE_DATA } from '../store/diagramStore'
 import type { AppEdge, AppNode, AwsEdgeData, DiagramPage, EdgeArrows, EdgePathType } from '../types'
@@ -84,7 +85,7 @@ function parseNode(raw: unknown, index: number): AppNode {
   if (raw.type === 'icon') {
     const iconPath = str(data.iconPath)
     if (!ICON_PATH.test(iconPath)) throw new Error(`${where} references an unknown icon`)
-    const iconSize = isNumber(data.iconSize) && data.iconSize >= 16 && data.iconSize <= 256 ? Math.round(data.iconSize) : undefined
+    const iconSize = isNumber(data.iconSize) && data.iconSize >= MIN_ICON_SIZE && data.iconSize <= MAX_ICON_SIZE ? Math.round(data.iconSize) : undefined
     return {
       ...base,
       type: 'icon',
@@ -112,7 +113,7 @@ function parseNode(raw: unknown, index: number): AppNode {
   if (raw.type === 'image') {
     const src = str(data.src)
     if (!isEmbeddedImageDataUrl(src)) throw new Error(`${where} has an invalid embedded image`)
-    if (!isNumber(raw.width) || !isNumber(raw.height) || raw.width < 1 || raw.height < 1 || raw.width > 4096 || raw.height > 4096) {
+    if (!isNumber(raw.width) || !isNumber(raw.height) || raw.width < MIN_IMAGE_SIZE || raw.height < MIN_IMAGE_SIZE || raw.width > MAX_IMAGE_SIZE || raw.height > MAX_IMAGE_SIZE) {
       throw new Error(`${where} has invalid image dimensions`)
     }
     return {

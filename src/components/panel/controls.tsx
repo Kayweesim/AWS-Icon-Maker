@@ -51,6 +51,43 @@ export function Segmented<T extends string>({
 const inputClass =
   'w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-[13px] text-zinc-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
 
+/** A size edit is committed once on blur/Enter; empty and invalid drafts leave geometry alone. */
+export function NumberField({ label, value, min, max, onCommit }: {
+  label: string; value: number | undefined; min: number; max: number; onCommit: (value: number) => void
+}) {
+  const [draft, setDraft] = useState({ base: value, text: value === undefined ? '' : String(value) })
+  const text = draft.base === value ? draft.text : value === undefined ? '' : String(value)
+  return (
+    <Field label={label}>
+      <input
+        type="number"
+        aria-label={label}
+        min={min}
+        max={max}
+        step={1}
+        placeholder="Mixed"
+        value={text}
+        onChange={(event) => setDraft({ base: value, text: event.target.value })}
+        onBlur={() => {
+          const parsed = text.trim() ? Number(text) : NaN
+          const next = Number.isFinite(parsed) ? Math.max(min, Math.min(max, Math.round(parsed))) : value
+          // The store may further constrain a linked dimension; display its actual value.
+          setDraft({ base: value, text: value === undefined ? '' : String(value) })
+          if (next !== undefined && next !== value) onCommit(next)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') event.currentTarget.blur()
+          if (event.key === 'Escape') {
+            setDraft({ base: value, text: value === undefined ? '' : String(value) })
+            requestAnimationFrame(() => (event.target as HTMLInputElement).blur())
+          }
+        }}
+        className={inputClass}
+      />
+    </Field>
+  )
+}
+
 /** Text input that commits on blur or Enter, so typing doesn't create an undo step per keystroke. */
 export function TextField({
   label,
