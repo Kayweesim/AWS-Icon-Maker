@@ -12,6 +12,7 @@ import { Position } from '@xyflow/react'
 import { absolutePosition } from '../lib/geometry'
 import { elbowRoute } from '../lib/elbowRoute'
 import { parallelEdgeOffsets } from '../lib/parallelEdges'
+import { mediaSize } from '../lib/mediaResize'
 import type { AppEdge, AppNode, IconNode, ImageNode } from '../types'
 
 export type DrawioInput = { name: string; nodes: AppNode[]; edges: AppEdge[] }
@@ -78,29 +79,30 @@ function groupCellStyle(groupType: GroupType) {
   })
 }
 
+const captionStyle = { html: 1, whiteSpace: 'wrap', verticalLabelPosition: 'bottom', verticalAlign: 'top', labelWidth: LABEL_WIDTH, fontFamily: 'Arial', fontSize: 12 }
+
 function iconCellStyle(node: IconNode, images: IconImages) {
-  const label = { html: 1, whiteSpace: 'wrap', verticalLabelPosition: 'bottom', verticalAlign: 'top', labelWidth: LABEL_WIDTH, fontFamily: 'Arial', fontSize: 12 }
   const image = images[node.data.iconPath]
-  if (!image) return style({ ...label, rounded: 1, fillColor: '#F5F5F5', strokeColor: '#9CA3AF' })
+  if (!image) return style({ ...captionStyle, rounded: 1, fillColor: '#F5F5F5', strokeColor: '#9CA3AF' })
   // draw.io's convention for embedded images: base64 after "data:image/svg+xml," (no ";base64",
   // since ";" separates style entries).
-  return style({ ...label, shape: 'image', aspect: 'fixed', imageAspect: 0, labelBackgroundColor: 'none', image: `data:image/svg+xml,${image}` })
+  return style({ ...captionStyle, shape: 'image', aspect: 'fixed', imageAspect: 0, labelBackgroundColor: 'none', image: `data:image/svg+xml,${image}` })
 }
 
 function imageCellStyle(node: ImageNode) {
   // draw.io styles use semicolons as separators, so use its data-URI form without `;base64`.
   const image = node.data.src.replace(';base64,', ',')
-  return style({ shape: 'image', aspect: 'fixed', imageAspect: 0, image })
+  return style({ ...captionStyle, shape: 'image', aspect: 'fixed', imageAspect: 0, image })
 }
 
-/** Where an edge attaches: a point along a side, and for icons the bottom sits below the label. */
+/** Where an edge attaches: a point along a side, with media's bottom below its caption. */
 function attachment(prefix: 'exit' | 'entry', node: AppNode, handle: string | null | undefined) {
   const point = parseHandle(handle)
   if (!point) return {}
   const along = Math.round(point.fraction * 1000) / 1000
   const [x, y] =
     point.side === 'left' ? [0, along] : point.side === 'right' ? [1, along] : point.side === 'top' ? [along, 0] : [along, 1]
-  const belowLabel = node.type === 'icon' && point.side === 'bottom' ? layoutSize(node).height - iconSizeOf(node) : 0
+  const belowLabel = (node.type === 'icon' || node.type === 'image') && point.side === 'bottom' ? layoutSize(node).height - mediaSize(node).height : 0
   return { [`${prefix}X`]: x, [`${prefix}Y`]: y, [`${prefix}Dx`]: 0, [`${prefix}Dy`]: belowLabel, [`${prefix}Perimeter`]: 0 }
 }
 
@@ -138,11 +140,11 @@ function edgeGeometry(edge: AppEdge, source: AppNode, target: AppNode, nodes: Ma
     const side = (parsed?.side ?? fallback) as Position
     const fraction = parsed?.fraction ?? 0.5
     const horizontal = side === Position.Left || side === Position.Right
-    const iconSize = node.type === 'icon' ? iconSizeOf(node) : size.width
-    const left = node.type === 'icon' ? (size.width - iconSize) / 2 : 0
+    const artwork = node.type === 'icon' || node.type === 'image' ? mediaSize(node) : size
+    const left = (size.width - artwork.width) / 2
     return {
-      x: position.x + (horizontal ? left + (side === Position.Right ? iconSize : 0) : size.width * fraction) + (horizontal ? 0 : offset),
-      y: position.y + (horizontal ? (node.type === 'icon' ? iconSize : size.height) * fraction : side === Position.Bottom ? size.height : 0) + (horizontal ? offset : 0),
+      x: position.x + (horizontal ? left + (side === Position.Right ? artwork.width : 0) : side === Position.Top ? left + artwork.width * fraction : size.width * fraction) + (horizontal ? 0 : offset),
+      y: position.y + (horizontal ? artwork.height * fraction : side === Position.Bottom ? size.height : 0) + (horizontal ? offset : 0),
       side,
     }
   }
@@ -165,7 +167,7 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
     const x = node.position?.x ?? 0
     const y = node.position?.y ?? 0
     const size = layoutSize(node)
-    const label = attr(htmlLabel(node.type === 'image' ? '' : (node.data?.label ?? '')))
+    const label = attr(htmlLabel(node.data?.label ?? ''))
     const open = `<mxCell id="${attr(cellId(node.id))}" value="${label}"`
 
     if (node.type === 'icon') {
@@ -174,7 +176,8 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
       const iconX = x + (iconNodeWidth(iconSize) - iconSize) / 2
       cells.push(`${open} style="${attr(iconCellStyle(node, images))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(iconX, y, iconSize, iconSize)}`, '</mxCell>')
     } else if (node.type === 'image') {
-      cells.push(`${open} style="${attr(imageCellStyle(node))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x, y, size.width, size.height)}`, '</mxCell>')
+      const artwork = mediaSize(node)
+      cells.push(`${open} style="${attr(imageCellStyle(node))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x + (size.width - artwork.width) / 2, y, artwork.width, artwork.height)}`, '</mxCell>')
     } else if (node.type === 'text') {
       const fontSize = node.data?.fontSize ?? TEXT_FONT_SIZE
       const textStyle = style({ text: undefined, html: 1, whiteSpace: 'wrap', align: 'left', verticalAlign: 'top', fontFamily: 'Arial', fontSize, spacing: 2 })

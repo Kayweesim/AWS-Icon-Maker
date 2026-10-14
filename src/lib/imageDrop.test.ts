@@ -68,6 +68,8 @@ describe('image drops', () => {
 
   it('derives a readable name and fits dimensions without changing aspect ratio', () => {
     expect(imageName('system.context.png')).toBe('system.context')
+    expect(imageName('github.jpg')).toBe('github')
+    expect(imageName('github.logo.SVG')).toBe('github.logo')
     expect(imageName('.png')).toBe('Image')
     expect(fitImageSize(1600, 800)).toEqual({ width: 320, height: 160 })
     expect(fitImageSize(24, 12)).toEqual({ width: 96, height: 48 })

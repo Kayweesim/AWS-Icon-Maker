@@ -6,7 +6,7 @@ export type ImageFormat = 'png' | 'svg'
 
 const PADDING = 32
 
-const EXCLUDED_CLASSES = ['react-flow__handle', 'react-flow__resize-control', 'react-flow__nodesselection', 'edge-elbow-handle']
+const EXCLUDED_CLASSES = ['react-flow__handle', 'react-flow__resize-control', 'react-flow__nodesselection', 'edge-elbow-handle', 'media-resize-handle']
 
 function include(node: HTMLElement) {
   const classes = node.classList

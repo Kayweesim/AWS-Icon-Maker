@@ -81,6 +81,8 @@ yours. Anything that arrives is validated with the same parser as an opened file
 - **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Drop a PNG,
   JPEG, SVG, GIF, WebP or AVIF file (up to 20 MB) onto the canvas to add it to the diagram.
   SVGs are rendered into embedded PNGs so diagrams stay self-contained when saved or shared.
+  Select an image and drag a corner, or edit **Width**/**Height** in the properties panel, to
+  resize it without stretching. Dimensions are retained in JSON, collaboration, clipboard and exports.
   Unreadable or unsupported files show an error instead of silently failing. Hold
   <kbd>Shift</kbd> while dragging a selection box to pick only services, text and arrows, and skip
   the groups around them, so you can move services independently of their VPC or Region.
@@ -118,7 +120,10 @@ yours. Anything that arrives is validated with the same parser as an opened file
   and keep everything inside, <kbd>⌘</kbd>-click its icon or label and press Delete, or use
   **Delete group, keep contents** in the properties panel.
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
-  delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
+  delete, arrow-key nudge and undo/redo. Icons have 32, 48 and 64px presets plus a custom size
+  from 16–256px. Drag an icon's corner to resize just its artwork; labels keep their size.
+  Focus a resize handle and use arrow keys for 1px adjustments (10px with Shift). Each drag is
+  one undo step. Tidy and Auto-arrange may reset icon sizes according to their existing layout rules.
   Paste a clipboard image or screenshot with <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>V</kbd> to add it
   at the cursor (or the canvas centre). Pasting into a text field still edits text normally.
   Copy/paste also works between separate browser tabs and diagrams: selected groups and their

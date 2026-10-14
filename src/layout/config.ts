@@ -7,6 +7,10 @@ export const GRID_SIZE = 8
 export const ICON_SIZE = 64
 /** Sizes offered in the properties panel (predefined sizes from the AWS icon package). */
 export const ICON_SIZES = [32, 48, 64] as const
+export const MIN_ICON_SIZE = 16
+export const MAX_ICON_SIZE = 256
+export const MIN_IMAGE_SIZE = 1
+export const MAX_IMAGE_SIZE = 4096
 /** Size of icons saved before icon sizes existed. */
 export const LEGACY_ICON_SIZE = 48
 

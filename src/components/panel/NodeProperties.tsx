@@ -1,10 +1,11 @@
 import { GROUP_TYPES, groupStyle, type GroupType } from '../../data/groups'
-import { ICON_SIZES, TEXT_FONT_SIZE, TEXT_FONT_SIZES } from '../../layout/config'
+import { ICON_SIZES, MAX_ICON_SIZE, MAX_IMAGE_SIZE, MIN_ICON_SIZE, MIN_IMAGE_SIZE, TEXT_FONT_SIZE, TEXT_FONT_SIZES } from '../../layout/config'
 import { iconSizeOf } from '../../layout/sizes'
+import { mediaSize, proportionalSize } from '../../lib/mediaResize'
 import { mod } from '../../lib/platform'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { GroupNode, IconNode, ImageNode, TextNode } from '../../types'
-import { Field, Segmented, SelectField, TextField } from './controls'
+import { Field, NumberField, Segmented, SelectField, TextField } from './controls'
 
 const groupOptions = GROUP_TYPES.map((type) => ({ value: type, label: groupStyle(type).label }))
 const sizeOptions = ICON_SIZES.map((size) => ({ value: String(size), label: `${size}px` }))
@@ -15,12 +16,23 @@ export function IconSizeField({ nodes }: { nodes: IconNode[] }) {
   const sizes = new Set(nodes.map(iconSizeOf))
 
   return (
-    <Segmented
-      label="Icon size"
-      value={sizes.size === 1 ? String([...sizes][0]) : undefined}
-      options={sizeOptions}
-      onChange={(size) => setIconSize(nodes.map((n) => n.id), Number(size))}
-    />
+    <>
+      <Segmented
+        label="Icon size"
+        value={sizes.size === 1 ? String([...sizes][0]) : undefined}
+        options={sizeOptions}
+        onChange={(size) => setIconSize(nodes.map((n) => n.id), Number(size))}
+      />
+      <NumberField
+        key={nodes.map((node) => node.id).join(',')}
+        label="Icon size (px)"
+        value={sizes.size === 1 ? [...sizes][0] : undefined}
+        min={MIN_ICON_SIZE}
+        max={MAX_ICON_SIZE}
+        onCommit={(size) => setIconSize(nodes.map((n) => n.id), size)}
+      />
+      <p className="text-[12px] leading-snug text-zinc-500">Drag a corner to resize. Icons stay square; labels keep their size.</p>
+    </>
   )
 }
 
@@ -42,6 +54,9 @@ export function IconProperties({ node }: { node: IconNode }) {
 }
 
 export function ImageProperties({ node }: { node: ImageNode }) {
+  const resizeMedia = useDiagramStore((s) => s.resizeMedia)
+  const updateNodeData = useDiagramStore((s) => s.updateNodeData)
+  const size = mediaSize(node)
   return (
     <>
       <div className="flex items-center gap-3 rounded-lg bg-zinc-50 p-2.5">
@@ -50,11 +65,21 @@ export function ImageProperties({ node }: { node: ImageNode }) {
           {node.data.label}
         </span>
       </div>
-      <Field label="Size">
-        <span className="text-[12px] text-zinc-600 tabular-nums">
-          {Math.round(node.width ?? 160)} × {Math.round(node.height ?? 160)}
-        </span>
-      </Field>
+      <TextField key={node.id} label="Name / description" value={node.data.label} placeholder="Image name" multiline onCommit={(label) => updateNodeData(node.id, { label })} />
+      <p className="text-[12px] leading-snug text-zinc-500">Shown below the image. You can also double-click it to edit.</p>
+      <div className="grid grid-cols-2 gap-2">
+        {(['width', 'height'] as const).map((axis) => (
+          <NumberField
+            key={`${node.id}-${axis}`}
+            label={axis === 'width' ? 'Width (px)' : 'Height (px)'}
+            value={Math.round(size[axis])}
+            min={MIN_IMAGE_SIZE}
+            max={MAX_IMAGE_SIZE}
+            onCommit={(value) => resizeMedia(node.id, proportionalSize(size, value, axis, 'image'))}
+          />
+        ))}
+      </div>
+      <p className="text-[12px] leading-snug text-zinc-500">Drag a corner or enter a size. Proportions stay locked.</p>
     </>
   )
 }
