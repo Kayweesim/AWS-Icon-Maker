@@ -79,7 +79,9 @@ yours. Anything that arrives is validated with the same parser as an opened file
 - **Icon palette:** 304 service icons and 466 resource icons in 24 categories, with search and
   collapsible sections. Groups sit at the top of the palette.
 - **Canvas:** infinite pan and zoom, snap-to-grid, a minimap, and box selection. Drop a PNG,
-  JPEG, GIF, WebP or AVIF file onto the canvas to add it to the diagram. Hold
+  JPEG, SVG, GIF, WebP or AVIF file (up to 20 MB) onto the canvas to add it to the diagram.
+  SVGs are rendered into embedded PNGs so diagrams stay self-contained when saved or shared.
+  Unreadable or unsupported files show an error instead of silently failing. Hold
   <kbd>Shift</kbd> while dragging a selection box to pick only services, text and arrows, and skip
   the groups around them, so you can move services independently of their VPC or Region.
 - **Quick add:** press <kbd>S</kbd> to open a search panel at your cursor. Type (for example
@@ -98,6 +100,14 @@ yours. Anything that arrives is validated with the same parser as an opened file
   Each arrow can have a label, a solid or dashed line, an elbow, straight or curved path,
   and arrowheads at the end, both ends or neither. Several arrows between the same two services
   (a request and its reply, say) are drawn side by side: the second below the first.
+  Select an elbow arrow and choose **Above**, **Below**, **Left** or **Right** under **Elbows**
+  to route around both nodes (for example, a U-shaped arrow beneath side-by-side services).
+  Both attachment points move to that side; **Automatic route** restores the facing sides.
+  Drag the blue segment handles to adjust the bends. Focus a handle
+  and use the arrow keys for precise adjustments. Each drag is one undo step. Double-click a
+  handle or choose **Reset elbows** to reset the bends while keeping the attachment sides. Adjustments are saved in
+  JSON, shared with collaborators and included in image/draw.io exports. Tidy or Auto-arrange
+  resets bends on arrows it reroutes; moving or duplicating the diagram preserves relative bends.
 - **Text:** press <kbd>T</kbd> and click anywhere, including inside a group, to add a text box you
   can drag, resize the font of, and connect arrows to. Text is exported as comments.
 - **Groups:** AWS Cloud, Region, Availability Zone, VPC, public and private subnet, security group,
@@ -109,6 +119,11 @@ yours. Anything that arrives is validated with the same parser as an opened file
   **Delete group, keep contents** in the properties panel.
 - **Editing:** double-click (or press Enter) to rename, multi-select, copy, cut, paste, duplicate,
   delete, arrow-key nudge, undo/redo, and icon sizes of 32, 48 or 64px.
+  Paste a clipboard image or screenshot with <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>V</kbd> to add it
+  at the cursor (or the canvas centre). Pasting into a text field still edits text normally.
+  Copy/paste also works between separate browser tabs and diagrams: selected groups and their
+  contents, images, labels and arrows between copied nodes travel together. Cross-tab pastes
+  land at the cursor (or canvas centre), get fresh IDs and can be undone in one step.
 - **Files:** export PNG (2×), SVG or a draw.io file, save and open JSON, and autosave to
   localStorage. Dropped images are embedded in the diagram so saved files stay self-contained.
   Saving writes every page; opening a JSON file is additive — a page with the same id as one

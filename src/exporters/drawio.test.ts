@@ -132,4 +132,15 @@ describe('exportDrawio', () => {
     assertWellFormedXml(out)
     expect(out).toContain('name="Untitled diagram"')
   })
+
+  it('exports adjusted elbow waypoints in absolute diagram coordinates', () => {
+    const nodes: AppNode[] = [
+      { id: 'a', type: 'image', position: { x: 0, y: 0 }, width: 100, height: 100, data: { label: 'a', src: 'data:image/png;base64,AAEC/w==' } },
+      { id: 'b', type: 'image', position: { x: 400, y: 200 }, width: 100, height: 100, data: { label: 'b', src: 'data:image/png;base64,AAEC/w==' } },
+    ]
+    const edges: AppEdge[] = [{ id: 'ab', type: 'aws', source: 'a', target: 'b', sourceHandle: 'right', targetHandle: 'left', data: { label: '', pathType: 'step', arrows: 'end', dashed: false, elbowOffsets: [40] } }]
+    const out = exportDrawio({ name: 'Elbows', nodes, edges })
+    assertWellFormedXml(out)
+    expect(out).toContain('<Array as="points"><mxPoint x="290" y="50" /><mxPoint x="290" y="250" /></Array>')
+  })
 })

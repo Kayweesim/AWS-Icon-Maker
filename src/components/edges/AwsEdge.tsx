@@ -8,10 +8,12 @@ import {
   type EdgeProps,
 } from '@xyflow/react'
 import { memo } from 'react'
+import { elbowRoute } from '../../lib/elbowRoute'
 import { parallelEdgeOffsets } from '../../lib/parallelEdges'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { AppEdge } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
+import { ElbowHandles } from './ElbowHandles'
 
 const STROKE = '#545B64'
 const SELECTED = '#3B82F6'
@@ -28,23 +30,32 @@ function buildPath(props: EdgeProps<AppEdge>, offset: number) {
   const params = { sourceX: source.x, sourceY: source.y, targetX: target.x, targetY: target.y, sourcePosition, targetPosition }
   switch (data?.pathType) {
     case 'straight':
-      return getStraightPath(params)
+      return { path: getStraightPath(params), route: null }
     case 'bezier':
-      return getBezierPath(params)
-    default:
+      return { path: getBezierPath(params), route: null }
+    default: {
       // AWS guidelines favour straight lines and right angles.
-      return getSmoothStepPath({ ...params, borderRadius: 6, offset: 20 })
+      if (!props.selected && !data?.elbowOffsets) {
+        return { path: getSmoothStepPath({ ...params, borderRadius: 6, offset: 20 }), route: null }
+      }
+      const route = elbowRoute(params, data?.elbowOffsets)
+      const path = data?.elbowOffsets
+        ? [route.path, route.label.x, route.label.y] as const
+        : getSmoothStepPath({ ...params, borderRadius: 6, offset: 20 })
+      return { path, route }
+    }
   }
 }
 
 function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
   const { id, data, selected } = props
   const editing = useDiagramStore((s) => s.editingId === id)
+  const selecting = useDiagramStore((s) => s.tool.kind === 'select')
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData)
   const offset = useDiagramStore((s) => parallelEdgeOffsets(s.edges).get(id) ?? 0)
 
-  const [path, labelX, labelY] = buildPath(props, offset)
+  const { path: [path, labelX, labelY], route } = buildPath(props, offset)
   const color = selected ? SELECTED : STROKE
   const arrows = data?.arrows ?? 'end'
   const markerId = `arrow-${id}`
@@ -74,11 +85,12 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
         markerStart={arrows === 'both' ? `url(#${markerId})` : undefined}
         style={{ stroke: color, strokeWidth: 1.5, strokeDasharray: data?.dashed ? '6 4' : undefined }}
       />
+      {selected && selecting && !editing && route && <ElbowHandles id={id} handles={route.handles} offsets={route.offsets} />}
       {(data?.label || editing) && (
         <EdgeLabelRenderer>
           <div
             className="nodrag nopan absolute"
-            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, pointerEvents: 'all' }}
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - (selected && route ? 18 : 0)}px)`, pointerEvents: 'all' }}
             onDoubleClick={() => setEditingId(id)}
           >
             <EditableLabel

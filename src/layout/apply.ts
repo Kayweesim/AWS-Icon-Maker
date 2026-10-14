@@ -20,7 +20,7 @@ export function applyLayoutResult(nodes: AppNode[], edges: AppEdge[], result: La
 
   const nextEdges = edges.map((edge) => {
     const handles = result.edgeHandles[edge.id]
-    return handles ? { ...edge, ...handles } : edge
+    return handles ? { ...edge, ...handles, ...(edge.data && { data: { ...edge.data, elbowOffsets: undefined } }) } : edge
   })
 
   return { nodes: nextNodes, edges: nextEdges }

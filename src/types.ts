@@ -40,6 +40,8 @@ export type AwsEdgeData = {
   dashed: boolean
   pathType: EdgePathType
   arrows: EdgeArrows
+  /** Perpendicular offsets of the internal elbow segments, relative to automatic routing. */
+  elbowOffsets?: number[]
 }
 
 export type AppEdge = Edge<AwsEdgeData, 'aws'>
