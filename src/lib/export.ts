@@ -22,11 +22,12 @@ export async function exportImage(format: ImageFormat, bounds: Rect, filename: s
   // so exporting a detour does not crop it off at the outermost node.
   for (const path of viewport.querySelectorAll<SVGPathElement>('.react-flow__edge-path')) {
     const box = path.getBBox()
-    const x = Math.min(bounds.x, box.x), y = Math.min(bounds.y, box.y)
+    const halfStroke = (parseFloat(getComputedStyle(path).strokeWidth) || 1.5) / 2
+    const x = Math.min(bounds.x, box.x - halfStroke), y = Math.min(bounds.y, box.y - halfStroke)
     bounds = {
       x, y,
-      width: Math.max(bounds.x + bounds.width, box.x + box.width) - x,
-      height: Math.max(bounds.y + bounds.height, box.y + box.height) - y,
+      width: Math.max(bounds.x + bounds.width, box.x + box.width + halfStroke) - x,
+      height: Math.max(bounds.y + bounds.height, box.y + box.height + halfStroke) - y,
     }
   }
 

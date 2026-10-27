@@ -30,6 +30,7 @@ function IconNodeComponent({ id, data, selected }: NodeProps<IconNodeType>) {
         ))}
       </div>
       <EditableLabel
+        formatting={data}
         value={data.label}
         editing={editing}
         placeholder="Label"

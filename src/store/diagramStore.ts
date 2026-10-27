@@ -26,7 +26,7 @@ import { newId } from '../lib/ids'
 import type { PreparedImage } from '../lib/imageDrop'
 import { mediaSize, resizeMediaNode, type MediaSize, type ResizeAnchor } from '../lib/mediaResize'
 import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
-import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc } from '../types'
+import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc, type TextFormatting } from '../types'
 
 /** What clicking on the canvas does. */
 export type Tool =
@@ -84,6 +84,8 @@ export type DiagramState = {
   updateEdgeData: (id: string, patch: Partial<AwsEdgeData>) => void
   /** Applies the same change to several edges as a single undo step. */
   updateEdgesData: (ids: string[], patch: Partial<AwsEdgeData>) => void
+  /** Format any mix of selected captions and arrow labels in one undo step. */
+  setTextFormatting: (nodeIds: string[], edgeIds: string[], patch: TextFormatting) => void
   /** Reconnects selected arrows around the same side of both nodes, or restores facing sides. */
   routeEdges: (ids: string[], side: HandleSide | 'auto') => void
   /** Resizes icons around their centres as a single undo step. */
@@ -406,6 +408,22 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     },
 
     updateEdgeData: (id, patch) => get().updateEdgesData([id], patch),
+
+    setTextFormatting: (nodeIds, edgeIds, patch) => {
+      const nodes = new Set(nodeIds), edges = new Set(edgeIds)
+      const differs = (data: TextFormatting = {}) =>
+        Object.entries(patch).some(([key, value]) => data[key as keyof TextFormatting] !== value)
+      const state = get()
+      if (!state.nodes.some((node) => nodes.has(node.id) && differs(node.data)) &&
+        !state.edges.some((edge) => edges.has(edge.id) && differs(edge.data))) return
+      const history = record()
+      const current = get()
+      set({
+        ...history,
+        nodes: current.nodes.map((node) => nodes.has(node.id) && differs(node.data) ? { ...node, data: { ...node.data, ...patch } } as AppNode : node),
+        edges: current.edges.map((edge) => edges.has(edge.id) && differs(edge.data) ? { ...edge, data: { ...DEFAULT_EDGE_DATA, ...edge.data, ...patch } } : edge),
+      })
+    },
 
     updateEdgesData: (ids, patch) => {
       const targets = new Set(ids)

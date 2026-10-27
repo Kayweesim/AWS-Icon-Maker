@@ -24,6 +24,7 @@ function TextNodeComponent({ id, data, selected }: NodeProps<TextNodeType>) {
       style={{ maxWidth: TEXT_MAX_WIDTH, padding: `${TEXT_PADDING.y}px ${TEXT_PADDING.x}px` }}
     >
       <EditableLabel
+        formatting={data}
         value={data.label}
         editing={editing}
         placeholder="Type something"

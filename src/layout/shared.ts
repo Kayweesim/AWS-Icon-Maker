@@ -17,6 +17,7 @@ export type Box = {
   /** Group label, which sets a minimum width and the header height. */
   label: string
   hasIcon: boolean
+  bold?: boolean
 }
 
 // `|| 0` turns -0 into 0.
@@ -97,6 +98,7 @@ export function makeBoxes(tree: Tree, scope: Set<string>, iconSize?: number): Ma
       iconSize: node.type === 'icon' ? iconSizeOf(node) : 0,
       label: node.type === 'awsGroup' ? (node.data?.label ?? '') : '',
       hasIcon: groupHasIcon(node),
+      bold: node.data.bold,
     }
     if (node.type === 'icon' && iconSize && scope.has(id) && box.iconSize !== iconSize) {
       const cx = box.x + box.width / 2
@@ -157,14 +159,14 @@ export function separateBoxes(siblings: Box[], canMove: (box: Box) => boolean, g
 }
 
 /** Top padding a group needs so its label, wrapped at `width`, clears the contents. */
-export function groupTopPadding(group: Pick<Box, 'label' | 'hasIcon'>, width: number) {
-  const { headerHeight } = groupLabelLayout(group.label, group.hasIcon, width)
+export function groupTopPadding(group: Pick<Box, 'label' | 'hasIcon' | 'bold'>, width: number) {
+  const { headerHeight } = groupLabelLayout(group.label, group.hasIcon, width, group.bold)
   return snapUp(Math.max(GROUP_PADDING.top, headerHeight + GROUP_HEADER_GAP))
 }
 
 /** Minimum width for a group: its label fits on one line, up to a cap. */
-export const groupMinWidth = (group: Pick<Box, 'label' | 'hasIcon'>) =>
-  Math.max(GROUP_MIN_SIZE.width, snapUp(groupLabelLayout(group.label, group.hasIcon).minWidth))
+export const groupMinWidth = (group: Pick<Box, 'label' | 'hasIcon' | 'bold'>) =>
+  Math.max(GROUP_MIN_SIZE.width, snapUp(groupLabelLayout(group.label, group.hasIcon, undefined, group.bold).minWidth))
 
 /**
  * Resizes a group to wrap its children with even padding, shifting children to match. The group

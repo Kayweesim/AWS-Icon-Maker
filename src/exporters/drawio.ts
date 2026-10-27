@@ -13,7 +13,8 @@ import { absolutePosition } from '../lib/geometry'
 import { elbowRoute } from '../lib/elbowRoute'
 import { parallelEdgeOffsets } from '../lib/parallelEdges'
 import { mediaSize } from '../lib/mediaResize'
-import type { AppEdge, AppNode, IconNode, ImageNode } from '../types'
+import type { AppEdge, AppNode, IconNode, ImageNode, GroupNode, TextFormatting } from '../types'
+import { arrowAppearance, DEFAULT_EDGE_TEXT_COLOR, DEFAULT_TEXT_COLOR, normalizeColor } from '../lib/appearance'
 
 export type DrawioInput = { name: string; nodes: AppNode[]; edges: AppEdge[] }
 
@@ -54,7 +55,14 @@ const DRAWIO_GROUP_ICONS: Partial<Record<GroupType, string>> = {
 
 const CONNECTION_POINTS = '[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]]'
 
-function groupCellStyle(groupType: GroupType) {
+// mxGraph uses bit flags: bold=1, underline=4. Keep them independent and additive.
+const fontFormatting = (data: TextFormatting = {}, fallback = DEFAULT_TEXT_COLOR) => ({
+  fontColor: normalizeColor(data.textColor) ?? fallback,
+  fontStyle: (data.bold === true ? 1 : 0) | (data.underline === true ? 4 : 0),
+})
+
+function groupCellStyle(node: GroupNode) {
+  const groupType = node.data.groupType
   const look = groupStyle(groupType)
   const grIcon = DRAWIO_GROUP_ICONS[groupType]
   return style({
@@ -71,10 +79,9 @@ function groupCellStyle(groupType: GroupType) {
     align: 'left',
     fontFamily: 'Arial',
     fontSize: 12,
-    fontStyle: 0,
     strokeColor: look.stroke,
     fillColor: look.fill ?? 'none',
-    fontColor: look.text,
+    ...fontFormatting(node.data, look.text),
     dashed: look.dashed ? 1 : 0,
   })
 }
@@ -82,17 +89,18 @@ function groupCellStyle(groupType: GroupType) {
 const captionStyle = { html: 1, whiteSpace: 'wrap', verticalLabelPosition: 'bottom', verticalAlign: 'top', labelWidth: LABEL_WIDTH, fontFamily: 'Arial', fontSize: 12 }
 
 function iconCellStyle(node: IconNode, images: IconImages) {
+  const caption = { ...captionStyle, ...fontFormatting(node.data) }
   const image = images[node.data.iconPath]
-  if (!image) return style({ ...captionStyle, rounded: 1, fillColor: '#F5F5F5', strokeColor: '#9CA3AF' })
+  if (!image) return style({ ...caption, rounded: 1, fillColor: '#F5F5F5', strokeColor: '#9CA3AF' })
   // draw.io's convention for embedded images: base64 after "data:image/svg+xml," (no ";base64",
   // since ";" separates style entries).
-  return style({ ...captionStyle, shape: 'image', aspect: 'fixed', imageAspect: 0, labelBackgroundColor: 'none', image: `data:image/svg+xml,${image}` })
+  return style({ ...caption, shape: 'image', aspect: 'fixed', imageAspect: 0, labelBackgroundColor: 'none', image: `data:image/svg+xml,${image}` })
 }
 
 function imageCellStyle(node: ImageNode) {
   // draw.io styles use semicolons as separators, so use its data-URI form without `;base64`.
   const image = node.data.src.replace(';base64,', ',')
-  return style({ ...captionStyle, shape: 'image', aspect: 'fixed', imageAspect: 0, image })
+  return style({ ...captionStyle, ...fontFormatting(node.data), shape: 'image', aspect: 'fixed', imageAspect: 0, image })
 }
 
 /** Where an edge attaches: a point along a side, with media's bottom below its caption. */
@@ -109,12 +117,13 @@ function attachment(prefix: 'exit' | 'entry', node: AppNode, handle: string | nu
 function edgeCellStyle(edge: AppEdge, source: AppNode, target: AppNode) {
   const data = edge.data
   const arrows = data?.arrows ?? 'end'
+  const appearance = arrowAppearance(data)
   return style({
     html: 1,
     rounded: 1,
     ...(data?.pathType === 'straight' ? { edgeStyle: 'none' } : { edgeStyle: 'orthogonalEdgeStyle', curved: data?.pathType === 'bezier' ? 1 : undefined }),
-    strokeColor: '#545B64',
-    strokeWidth: 1.5,
+    strokeColor: appearance.color,
+    strokeWidth: appearance.width,
     dashed: data?.dashed ? 1 : 0,
     endArrow: arrows === 'none' ? 'none' : 'open',
     endFill: 0,
@@ -122,6 +131,7 @@ function edgeCellStyle(edge: AppEdge, source: AppNode, target: AppNode) {
     startFill: 0,
     fontFamily: 'Arial',
     fontSize: 11,
+    ...fontFormatting(data, DEFAULT_EDGE_TEXT_COLOR),
     labelBackgroundColor: '#FFFFFF',
     ...attachment('exit', source, edge.sourceHandle),
     ...attachment('entry', target, edge.targetHandle),
@@ -180,10 +190,10 @@ export function exportDrawio({ name, nodes, edges }: DrawioInput, images: IconIm
       cells.push(`${open} style="${attr(imageCellStyle(node))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x + (size.width - artwork.width) / 2, y, artwork.width, artwork.height)}`, '</mxCell>')
     } else if (node.type === 'text') {
       const fontSize = node.data?.fontSize ?? TEXT_FONT_SIZE
-      const textStyle = style({ text: undefined, html: 1, whiteSpace: 'wrap', align: 'left', verticalAlign: 'top', fontFamily: 'Arial', fontSize, spacing: 2 })
+      const textStyle = style({ text: undefined, html: 1, whiteSpace: 'wrap', align: 'left', verticalAlign: 'top', fontFamily: 'Arial', fontSize, spacing: 2, ...fontFormatting(node.data) })
       cells.push(`${open} style="text;${attr(textStyle)}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x, y, size.width, size.height)}`, '</mxCell>')
     } else {
-      cells.push(`${open} style="${attr(groupCellStyle(node.data?.groupType))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x, y, size.width, size.height)}`, '</mxCell>')
+      cells.push(`${open} style="${attr(groupCellStyle(node))}" vertex="1" parent="${attr(parentId)}">`, `  ${geometry(x, y, size.width, size.height)}`, '</mxCell>')
     }
   }
 

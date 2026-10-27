@@ -5,6 +5,7 @@ import { newId } from './ids'
 import { DEFAULT_EDGE_DATA } from '../store/diagramStore'
 import type { AppEdge, AppNode, AwsEdgeData, DiagramPage, EdgeArrows, EdgePathType } from '../types'
 import { isEmbeddedImageDataUrl } from './imageDrop'
+import { normalizeColor, parseTextFormatting, validArrowWidth } from './appearance'
 
 const APP_ID = 'aws-diagram-studio'
 /** 2 added pages. Version 1 files (a bare nodes/edges pair) still open, as a single page. */
@@ -76,6 +77,7 @@ function parseNode(raw: unknown, index: number): AppNode {
     throw new Error(`${where} has an invalid position`)
   }
   const data = isObject(raw.data) ? raw.data : {}
+  const formatting = parseTextFormatting(data)
   const base = {
     id: raw.id,
     position: { x: raw.position.x, y: raw.position.y },
@@ -89,7 +91,7 @@ function parseNode(raw: unknown, index: number): AppNode {
     return {
       ...base,
       type: 'icon',
-      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }) },
+      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }), ...formatting },
     }
   }
 
@@ -101,13 +103,13 @@ function parseNode(raw: unknown, index: number): AppNode {
       type: 'awsGroup',
       width: isNumber(raw.width) ? Math.max(raw.width, 40) : style.width,
       height: isNumber(raw.height) ? Math.max(raw.height, 40) : style.height,
-      data: { label: str(data.label, style.label), groupType },
+      data: { label: str(data.label, style.label), groupType, ...formatting },
     }
   }
 
   if (raw.type === 'text') {
     const fontSize = isNumber(data.fontSize) && data.fontSize >= 8 && data.fontSize <= 72 ? Math.round(data.fontSize) : undefined
-    return { ...base, type: 'text', data: { label: str(data.label), ...(fontSize && { fontSize }) } }
+    return { ...base, type: 'text', data: { label: str(data.label), ...(fontSize && { fontSize }), ...formatting } }
   }
 
   if (raw.type === 'image') {
@@ -121,7 +123,7 @@ function parseNode(raw: unknown, index: number): AppNode {
       type: 'image',
       width: raw.width,
       height: raw.height,
-      data: { label: str(data.label, 'Image'), src },
+      data: { label: str(data.label, 'Image'), src, ...formatting },
     }
   }
 
@@ -133,6 +135,7 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
   if (!nodeIds.has(raw.source) || !nodeIds.has(raw.target)) return null
   const data = isObject(raw.data) ? raw.data : {}
   const handle = (value: unknown) => (typeof value === 'string' && parseHandle(value) ? value : null)
+  const strokeColor = normalizeColor(data.strokeColor)
   const edgeData: AwsEdgeData = {
     ...DEFAULT_EDGE_DATA,
     label: str(data.label),
@@ -140,6 +143,9 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
     dashed: data.dashed === true,
     pathType: PATH_TYPES.includes(data.pathType as EdgePathType) ? (data.pathType as EdgePathType) : 'step',
     arrows: ARROWS.includes(data.arrows as EdgeArrows) ? (data.arrows as EdgeArrows) : 'end',
+    ...parseTextFormatting(data),
+    ...(strokeColor && { strokeColor }),
+    ...(validArrowWidth(data.strokeWidth) && { strokeWidth: data.strokeWidth }),
     ...(Array.isArray(data.elbowOffsets) && data.elbowOffsets.length > 0 && data.elbowOffsets.length <= 16 &&
       data.elbowOffsets.every((value) => isNumber(value) && Math.abs(value) <= 1_000_000)
       ? { elbowOffsets: [...data.elbowOffsets] as number[] } : {}),
