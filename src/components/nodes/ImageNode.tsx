@@ -30,6 +30,7 @@ function ImageNodeComponent({ id, data, selected }: NodeProps<ImageNodeType>) {
         ))}
       </div>
       <EditableLabel
+        formatting={data}
         value={data.label}
         editing={editing}
         placeholder="Image name"

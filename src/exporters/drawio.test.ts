@@ -149,6 +149,29 @@ describe('exportDrawio', () => {
     expect(out).toContain('name="Untitled diagram"')
   })
 
+  it('exports arrow thickness/colour and independent bold/underline/colour on every label type', () => {
+    const formatting = { bold: true, underline: true, textColor: '#2563eb' }
+    const nodes: AppNode[] = [
+      { id: 'group', type: 'awsGroup', position: { x: 0, y: 0 }, width: 500, height: 500, data: { label: 'Group', groupType: 'vpc', ...formatting } },
+      { id: 'icon', type: 'icon', position: { x: 20, y: 20 }, data: { label: 'Service', iconId: 'x', iconPath: '/aws-icons/x.svg', ...formatting } },
+      { id: 'text', type: 'text', position: { x: 100, y: 20 }, data: { label: 'Text', ...formatting } },
+      { id: 'image', type: 'image', position: { x: 200, y: 20 }, width: 100, height: 50, data: { label: 'Image', src: 'data:image/png;base64,AAEC/w==', ...formatting } },
+    ]
+    const edges: AppEdge[] = [{ id: 'arrow', type: 'aws', source: 'icon', target: 'text', data: { label: 'HTTPS', pathType: 'straight', arrows: 'both', dashed: false, strokeColor: '#dc2626', strokeWidth: 4.5, ...formatting } }]
+    const out = exportDrawio({ name: 'Styles', nodes, edges }, images)
+    assertWellFormedXml(out)
+    for (const id of ['group', 'icon', 'text', 'image', 'arrow']) {
+      expect(cell(out, id)).toContain('fontColor=#2563eb')
+      expect(cell(out, id)).toContain('fontStyle=5')
+    }
+    expect(cell(out, 'arrow')).toContain('strokeColor=#dc2626')
+    expect(cell(out, 'arrow')).toContain('strokeWidth=4.5')
+    expect(cell(out, 'group')).toContain('strokeColor=#8C4FFF')
+    expect(cell(out, 'image')).toContain('width="100" height="50"')
+    const underlined = exportDrawio({ name: 'Underline', nodes: [{ ...nodes[2], data: { ...nodes[2].data, bold: false } } as AppNode], edges: [] })
+    expect(cell(underlined, 'text')).toContain('fontStyle=4')
+  })
+
   it('exports adjusted elbow waypoints in absolute diagram coordinates', () => {
     const nodes: AppNode[] = [
       { id: 'a', type: 'image', position: { x: 0, y: 0 }, width: 100, height: 100, data: { label: 'a', src: 'data:image/png;base64,AAEC/w==' } },

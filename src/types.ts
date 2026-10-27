@@ -1,7 +1,14 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { GroupType } from './data/groups'
 
-export type IconNodeData = {
+/** Whole-label formatting, shared by text boxes, node captions and arrow labels. */
+export type TextFormatting = {
+  bold?: boolean
+  underline?: boolean
+  textColor?: string
+}
+
+export type IconNodeData = TextFormatting & {
   label: string
   iconPath: string
   iconId: string
@@ -9,19 +16,19 @@ export type IconNodeData = {
   iconSize?: number
 }
 
-export type GroupNodeData = {
+export type GroupNodeData = TextFormatting & {
   label: string
   groupType: GroupType
 }
 
 /** Free text placed with the text tool. */
-export type TextNodeData = {
+export type TextNodeData = TextFormatting & {
   label: string
   fontSize?: number
 }
 
 /** A user-supplied raster image embedded in the diagram as a data URL. */
-export type ImageNodeData = {
+export type ImageNodeData = TextFormatting & {
   label: string
   src: string
 }
@@ -35,13 +42,15 @@ export type AppNode = IconNode | GroupNode | TextNode | ImageNode
 export type EdgePathType = 'step' | 'straight' | 'bezier'
 export type EdgeArrows = 'end' | 'both' | 'none'
 
-export type AwsEdgeData = {
+export type AwsEdgeData = TextFormatting & {
   label: string
   /** Optional connection notes, separate from the label rendered on the canvas. */
   description?: string
   dashed: boolean
   pathType: EdgePathType
   arrows: EdgeArrows
+  strokeColor?: string
+  strokeWidth?: number
   /** Perpendicular offsets of the internal elbow segments, relative to automatic routing. */
   elbowOffsets?: number[]
 }

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { textAppearance } from '../../lib/appearance'
+import type { TextFormatting } from '../../types'
 
 type Props = {
   value: string
@@ -8,6 +10,7 @@ type Props = {
   className?: string
   style?: CSSProperties
   placeholder?: string
+  formatting?: TextFormatting
 }
 
 /**
@@ -15,12 +18,13 @@ type Props = {
  * Enter commits, Shift+Enter inserts a line break, Escape cancels. The draft is also
  * committed whenever editing ends some other way (blur, clicking the canvas).
  */
-export function EditableLabel({ value, editing, onCommit, onDone, className = '', style, placeholder }: Props) {
+export function EditableLabel({ value, editing, onCommit, onDone, className = '', style, placeholder, formatting }: Props) {
   const [draft, setDraft] = useState(value)
   const ref = useRef<HTMLTextAreaElement>(null)
   const draftRef = useRef(draft)
   const onCommitRef = useRef(onCommit)
   const cancelledRef = useRef(false)
+  const labelStyle = { ...style, ...textAppearance(formatting, style?.color) }
 
   useEffect(() => {
     draftRef.current = draft
@@ -56,11 +60,11 @@ export function EditableLabel({ value, editing, onCommit, onDone, className = ''
     if (!el) return
     el.style.height = '0px'
     el.style.height = `${el.scrollHeight}px`
-  }, [draft, editing])
+  }, [draft, editing, formatting?.bold])
 
   if (!editing) {
     return value ? (
-      <div className={className} style={style}>
+      <div className={className} style={labelStyle}>
         {value}
       </div>
     ) : null
@@ -88,7 +92,7 @@ export function EditableLabel({ value, editing, onCommit, onDone, className = ''
       onBlur={onDone}
       onKeyDown={onKeyDown}
       onMouseDown={(e) => e.stopPropagation()}
-      style={style}
+      style={labelStyle}
       className={`nodrag nopan resize-none overflow-hidden rounded-sm bg-white outline-none ring-2 ring-blue-500 ${className}`}
     />
   )

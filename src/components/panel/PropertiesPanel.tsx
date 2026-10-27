@@ -5,6 +5,7 @@ import { groupOnlySelection, useDiagramStore } from '../../store/diagramStore'
 import type { IconNode } from '../../types'
 import { EdgeProperties } from './EdgeProperties'
 import { GroupProperties, IconProperties, IconSizeField, ImageProperties, TextProperties } from './NodeProperties'
+import { TextFormattingFields } from './TextFormattingFields'
 
 function PanelAction({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: ReactNode }) {
   return (
@@ -69,7 +70,10 @@ export function PropertiesPanel() {
       className="absolute top-16 right-3 z-10 flex max-h-[calc(100%-10rem)] w-64 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-panel"
     >
       <header className="border-b border-zinc-100 px-3.5 py-2.5 text-[12.5px] font-semibold text-zinc-800">{title}</header>
-      {body && <div className="flex flex-col gap-4 overflow-y-auto px-3.5 py-3.5">{body}</div>}
+      <div className="flex flex-col gap-4 overflow-y-auto px-3.5 py-3.5">
+        {body}
+        <TextFormattingFields key={[...nodes.map((node) => node.id), ...edges.map((edge) => edge.id)].join(',')} nodes={nodes} edges={edges} />
+      </div>
       <footer className="flex gap-2 border-t border-zinc-100 p-2.5">
         {nodes.length > 0 && (
           <PanelAction label="Duplicate" onClick={duplicate}>

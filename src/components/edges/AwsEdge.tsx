@@ -14,8 +14,8 @@ import { useDiagramStore } from '../../store/diagramStore'
 import type { AppEdge } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
 import { ElbowHandles } from './ElbowHandles'
+import { arrowAppearance, arrowheadGeometry, DEFAULT_EDGE_TEXT_COLOR } from '../../lib/appearance'
 
-const STROKE = '#545B64'
 const SELECTED = '#3B82F6'
 
 /** Slides an end point along the side of its node (down for left/right sides, right for top/bottom). */
@@ -56,7 +56,8 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
   const offset = useDiagramStore((s) => parallelEdgeOffsets(s.edges).get(id) ?? 0)
 
   const { path: [path, labelX, labelY], route } = buildPath(props, offset)
-  const color = selected ? SELECTED : STROKE
+  const { color, width } = arrowAppearance(data)
+  const head = arrowheadGeometry(width)
   const arrows = data?.arrows ?? 'end'
   const markerId = `arrow-${id}`
 
@@ -66,24 +67,26 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
         {/* Open arrowhead, matching the AWS preset arrows. */}
         <marker
           id={markerId}
-          viewBox="0 0 12 12"
-          refX="10"
-          refY="6"
-          markerWidth="12"
-          markerHeight="12"
+          viewBox={`0 0 ${head.size} ${head.size}`}
+          refX={head.refX}
+          refY={head.refY}
+          markerWidth={head.size}
+          markerHeight={head.size}
           markerUnits="userSpaceOnUse"
           orient="auto-start-reverse"
         >
-          <path d="M2,2 L10,6 L2,10" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={head.path} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
         </marker>
       </defs>
+      {/* A separate selection halo leaves the chosen colour visible while it is being edited. */}
+      {selected && <path className="edge-selection-outline" d={path} fill="none" stroke={SELECTED} strokeWidth={width + 6} strokeOpacity={0.25} pointerEvents="none" />}
       <BaseEdge
         id={id}
         path={path}
-        interactionWidth={16}
+        interactionWidth={Math.max(16, width + 10)}
         markerEnd={arrows !== 'none' ? `url(#${markerId})` : undefined}
         markerStart={arrows === 'both' ? `url(#${markerId})` : undefined}
-        style={{ stroke: color, strokeWidth: 1.5, strokeDasharray: data?.dashed ? '6 4' : undefined }}
+        style={{ stroke: color, strokeWidth: width, strokeDasharray: data?.dashed ? `${Math.max(6, width * 3)} ${Math.max(4, width * 2)}` : undefined }}
       />
       {selected && selecting && !editing && route && <ElbowHandles id={id} handles={route.handles} offsets={route.offsets} />}
       {(data?.label || editing) && (
@@ -94,6 +97,8 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
             onDoubleClick={() => setEditingId(id)}
           >
             <EditableLabel
+              formatting={data}
+              style={{ color: DEFAULT_EDGE_TEXT_COLOR }}
               value={data?.label ?? ''}
               editing={editing}
               placeholder="Label"

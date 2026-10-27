@@ -1,6 +1,7 @@
 import { DEFAULT_EDGE_DATA, useDiagramStore } from '../../store/diagramStore'
 import type { AppEdge, AwsEdgeData } from '../../types'
-import { Field, Segmented, TextField } from './controls'
+import { ColorField, Field, NumberField, Segmented, TextField } from './controls'
+import { arrowAppearance, MAX_ARROW_WIDTH, MIN_ARROW_WIDTH } from '../../lib/appearance'
 
 /** The shared value of a property across edges, or undefined if they differ. */
 function common<K extends keyof AwsEdgeData>(edges: AppEdge[], key: K): AwsEdgeData[K] | undefined {
@@ -14,9 +15,14 @@ export function EdgeProperties({ edges }: { edges: AppEdge[] }) {
   const ids = edges.map((e) => e.id)
   const update = (patch: Partial<AwsEdgeData>) => updateEdgesData(ids, patch)
   const dashed = common(edges, 'dashed')
+  const colors = new Set(edges.map((edge) => arrowAppearance(edge.data).color))
+  const widths = new Set(edges.map((edge) => arrowAppearance(edge.data).width))
 
   return (
     <>
+      <ColorField key={`${ids.join(',')}-color`} label="Arrow colour" value={colors.size === 1 ? [...colors][0] : undefined} onCommit={(strokeColor) => update({ strokeColor })} />
+      <NumberField key={`${ids.join(',')}-width`} label="Arrow thickness (px)" value={widths.size === 1 ? [...widths][0] : undefined} min={MIN_ARROW_WIDTH} max={MAX_ARROW_WIDTH} step={0.5} onCommit={(strokeWidth) => update({ strokeWidth })} />
+      <button type="button" onClick={() => update({ strokeColor: undefined, strokeWidth: undefined })} className="h-8 shrink-0 rounded-md border border-zinc-200 text-[12px] text-zinc-700 hover:bg-zinc-50">Reset arrow appearance</button>
       {edges.length === 1 && <>
         <TextField
           key={`${edges[0].id}-label`}

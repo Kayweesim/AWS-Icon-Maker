@@ -58,6 +58,7 @@ function GroupNodeComponent({ id, data, selected, width, height }: NodeProps<Gro
         <div className={`absolute top-0 right-2 ${iconPath ? 'left-10 pt-2' : 'left-2 pt-1.5'}`}>
           <div data-group-header className={editing ? 'block' : 'inline-block min-h-4 max-w-full min-w-6 align-top'}>
             <EditableLabel
+              formatting={data}
               value={data.label}
               editing={editing}
               placeholder="Group name"
