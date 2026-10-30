@@ -1,5 +1,6 @@
 import { ViewportPortal } from '@xyflow/react'
 import { presenceOf } from '../../collab/client'
+import { EDITOR_OVERLAY_LAYER } from '../../lib/layers'
 import { useDiagramStore } from '../../store/diagramStore'
 
 /** The other people in the room, drawn in canvas coordinates so they track pan and zoom. */
@@ -19,8 +20,8 @@ export function Cursors() {
         return (
           <div
             key={connectionId}
-            className="pointer-events-none absolute top-0 left-0 z-50 origin-top-left"
-            style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
+            className="pointer-events-none absolute top-0 left-0 origin-top-left"
+            style={{ zIndex: EDITOR_OVERLAY_LAYER, transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
           >
             <svg width="16" height="20" viewBox="0 0 16 20" fill={colour || '#ED7100'} aria-hidden>
               <path d="M0 0 L0 16 L4.2 12.2 L6.8 18.4 L9.6 17.2 L7 11 L12.6 11 Z" stroke="white" strokeWidth="1.2" />

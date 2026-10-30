@@ -12,12 +12,13 @@ import {
   type NodeTypes,
   type XYPosition,
 } from '@xyflow/react'
-import { useCallback, useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import { useCallback, useMemo, useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { useCursorBroadcast } from '../../collab/useCursors'
 import { groupStyle } from '../../data/groups'
 import { useCanvasClipboard } from '../../hooks/useCanvasClipboard'
 import { acceptsCanvasDrop, firstDroppedImage, IMAGE_DROP_FORMATS, prepareDroppedImage } from '../../lib/imageDrop'
 import { setCanvasPointer } from '../../lib/pointer'
+import { renderLayers } from '../../lib/layers'
 import { useDiagramStore } from '../../store/diagramStore'
 import { DRAG_MIME, GRID_SIZE, type AppNode, type PaletteDragItem } from '../../types'
 import { AwsEdge } from '../edges/AwsEdge'
@@ -45,6 +46,7 @@ const minimapStroke = (node: AppNode) => (node.type === 'awsGroup' ? groupStyle(
 export function DiagramCanvas() {
   const nodes = useDiagramStore((s) => s.nodes)
   const edges = useDiagramStore((s) => s.edges)
+  const layered = useMemo(() => renderLayers({ nodes, edges }), [nodes, edges])
   const tool = useDiagramStore((s) => s.tool)
   const onNodesChange = useDiagramStore((s) => s.onNodesChange)
   const onEdgesChange = useDiagramStore((s) => s.onEdgesChange)
@@ -160,8 +162,9 @@ export function DiagramCanvas() {
   return (
     <ReactFlow
       className={tool.kind === 'arrow' ? 'tool-arrow' : tool.kind === 'text' ? 'tool-text' : undefined}
-      nodes={nodes}
-      edges={edges}
+      nodes={layered.nodes}
+      edges={layered.edges}
+      zIndexMode="manual"
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onNodesChange={onNodesChange}

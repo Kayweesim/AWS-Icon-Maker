@@ -119,11 +119,11 @@ body {
 }
 
 /*
- * Edges attached to nested nodes are elevated above the label layer, which would draw
- * lines through their own labels. Keep labels on top of edges and nodes.
+ * Each arrow label shares its arrow's layer. The portal must not create a stacking context,
+ * otherwise labels would remain above nodes even after their arrow is sent to the back.
  */
 .react-flow__edgelabel-renderer {
-  z-index: 2000;
+  z-index: auto;
 }
 
 .react-flow__selection {

@@ -6,6 +6,7 @@ import { DEFAULT_EDGE_DATA } from '../store/diagramStore'
 import type { AppEdge, AppNode, AwsEdgeData, DiagramPage, EdgeArrows, EdgePathType } from '../types'
 import { isEmbeddedImageDataUrl } from './imageDrop'
 import { normalizeColor, parseTextFormatting, validArrowWidth } from './appearance'
+import { validLayer } from './layers'
 
 const APP_ID = 'aws-diagram-studio'
 /** 2 added pages. Version 1 files (a bare nodes/edges pair) still open, as a single page. */
@@ -32,7 +33,7 @@ export function toPage({ id, name, nodes, edges }: Page): Page {
   return {
     id,
     name,
-    nodes: nodes.map(({ id: nodeId, type, position, data, parentId, width, height }) => ({
+    nodes: nodes.map(({ id: nodeId, type, position, data, parentId, width, height, zIndex }) => ({
       id: nodeId,
       type,
       position,
@@ -40,8 +41,9 @@ export function toPage({ id, name, nodes, edges }: Page): Page {
       ...(parentId && { parentId }),
       ...(width !== undefined && { width }),
       ...(height !== undefined && { height }),
+      ...(validLayer(zIndex) && { zIndex }),
     })) as AppNode[],
-    edges: edges.map(({ id: edgeId, type, source, target, sourceHandle, targetHandle, data }) => ({
+    edges: edges.map(({ id: edgeId, type, source, target, sourceHandle, targetHandle, data, zIndex }) => ({
       id: edgeId,
       type,
       source,
@@ -49,6 +51,7 @@ export function toPage({ id, name, nodes, edges }: Page): Page {
       sourceHandle,
       targetHandle,
       data,
+      ...(validLayer(zIndex) && { zIndex }),
     })),
   }
 }
@@ -82,6 +85,7 @@ function parseNode(raw: unknown, index: number): AppNode {
     id: raw.id,
     position: { x: raw.position.x, y: raw.position.y },
     ...(typeof raw.parentId === 'string' && { parentId: raw.parentId }),
+    ...(validLayer(raw.zIndex) && { zIndex: raw.zIndex }),
   }
 
   if (raw.type === 'icon') {
@@ -158,6 +162,7 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
     sourceHandle: handle(raw.sourceHandle),
     targetHandle: handle(raw.targetHandle),
     data: edgeData,
+    ...(validLayer(raw.zIndex) && { zIndex: raw.zIndex }),
   }
 }
 
