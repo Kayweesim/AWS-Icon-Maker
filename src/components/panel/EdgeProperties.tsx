@@ -60,7 +60,7 @@ export function EdgeProperties({ edges }: { edges: AppEdge[] }) {
           { value: 'straight', label: 'Straight' },
           { value: 'bezier', label: 'Curved' },
         ]}
-        onChange={(pathType) => update({ pathType, elbowOffsets: undefined })}
+        onChange={(pathType) => update({ pathType, elbowOffsets: undefined, elbowEndpointOffsets: undefined })}
       />
       {common(edges, 'pathType') === 'step' && (
         <Field label="Elbows">
@@ -79,6 +79,7 @@ export function EdgeProperties({ edges }: { edges: AppEdge[] }) {
             ))}
           </div>
           <span className="text-[12px] leading-snug text-zinc-500">Route around both nodes, then drag a blue handle to adjust the distance.</span>
+          <span className="text-[12px] leading-snug text-zinc-500">Drag a handle near either end sideways to add bends while keeping the connection attached.</span>
           <button
             type="button"
             onClick={() => routeEdges(ids, 'auto')}
@@ -86,8 +87,8 @@ export function EdgeProperties({ edges }: { edges: AppEdge[] }) {
           >Automatic route</button>
           <button
             type="button"
-            onClick={() => update({ elbowOffsets: undefined })}
-            disabled={!edges.some((edge) => edge.data?.elbowOffsets)}
+            onClick={() => update({ elbowOffsets: undefined, elbowEndpointOffsets: undefined })}
+            disabled={!edges.some((edge) => edge.data?.elbowOffsets || edge.data?.elbowEndpointOffsets)}
             className="h-8 rounded-md border border-zinc-200 text-[12px] text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
           >Reset elbows</button>
         </Field>

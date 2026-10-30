@@ -37,11 +37,11 @@ function buildPath(props: EdgeProps<AppEdge>, offset: number) {
       return { path: getBezierPath(params), route: null }
     default: {
       // AWS guidelines favour straight lines and right angles.
-      if (!props.selected && !data?.elbowOffsets) {
+      if (!props.selected && !data?.elbowOffsets && !data?.elbowEndpointOffsets) {
         return { path: getSmoothStepPath({ ...params, borderRadius: 6, offset: 20 }), route: null }
       }
-      const route = elbowRoute(params, data?.elbowOffsets)
-      const path = data?.elbowOffsets
+      const route = elbowRoute(params, data?.elbowOffsets, data?.elbowEndpointOffsets)
+      const path = data?.elbowOffsets || data?.elbowEndpointOffsets
         ? [route.path, route.label.x, route.label.y] as const
         : getSmoothStepPath({ ...params, borderRadius: 6, offset: 20 })
       return { path, route }
@@ -91,7 +91,7 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
         markerStart={arrows === 'both' ? `url(#${markerId})` : undefined}
         style={{ stroke: color, strokeWidth: width, strokeDasharray: data?.dashed ? `${Math.max(6, width * 3)} ${Math.max(4, width * 2)}` : undefined }}
       />
-      {selected && selecting && !editing && route && <ElbowHandles id={id} handles={route.handles} offsets={route.offsets} />}
+      {selected && selecting && !editing && route && <ElbowHandles id={id} handles={[...route.handles, ...route.endpointHandles]} offsets={route.offsets} />}
       {(data?.label || editing) && (
         <EdgeLabelRenderer>
           <div

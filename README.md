@@ -105,8 +105,10 @@ yours. Anything that arrives is validated with the same parser as an opened file
   Select an elbow arrow and choose **Above**, **Below**, **Left** or **Right** under **Elbows**
   to route around both nodes (for example, a U-shaped arrow beneath side-by-side services).
   Both attachment points move to that side; **Automatic route** restores the facing sides.
-  Drag the blue segment handles to adjust the bends. Focus a handle
-  and use the arrow keys for precise adjustments. Each drag is one undo step. Double-click a
+  Drag the blue segment handles to adjust the bends. Drag a handle near either endpoint
+  sideways to add bends while keeping the node attachment fixed.
+  For example, drag the final vertical segment left to route beside a Lambda connected at its top.
+  Focus any handle and use the arrow keys for precise adjustments. Each drag is one undo step. Double-click a
   handle or choose **Reset elbows** to reset the bends while keeping the attachment sides. Adjustments are saved in
   JSON, shared with collaborators and included in image/draw.io exports. Tidy or Auto-arrange
   resets bends on arrows it reroutes; moving or duplicating the diagram preserves relative bends.

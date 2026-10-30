@@ -182,4 +182,15 @@ describe('exportDrawio', () => {
     assertWellFormedXml(out)
     expect(out).toContain('<Array as="points"><mxPoint x="290" y="50" /><mxPoint x="290" y="250" /></Array>')
   })
+
+  it('exports extra endpoint bends even without an interior offset', () => {
+    const nodes: AppNode[] = [
+      { id: 'a', type: 'image', position: { x: 0, y: 0 }, width: 100, height: 100, data: { label: '', src: 'data:image/png;base64,AAEC/w==' } },
+      { id: 'b', type: 'image', position: { x: 400, y: 400 }, width: 100, height: 100, data: { label: '', src: 'data:image/png;base64,AAEC/w==' } },
+    ]
+    const edges: AppEdge[] = [{ id: 'ab', type: 'aws', source: 'a', target: 'b', sourceHandle: 'bottom', targetHandle: 'top', data: { label: '', pathType: 'step', arrows: 'end', dashed: false, elbowEndpointOffsets: { target: -80 } } }]
+    const out = exportDrawio({ name: 'Endpoint bends', nodes, edges })
+    assertWellFormedXml(out)
+    expect(out).toContain('<mxPoint x="370" y="380" /><mxPoint x="450" y="380" />')
+  })
 })

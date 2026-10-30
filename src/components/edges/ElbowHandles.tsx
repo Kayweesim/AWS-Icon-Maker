@@ -3,9 +3,9 @@ import { useEffect, useRef, type PointerEvent } from 'react'
 import type { ElbowHandle } from '../../lib/elbowRoute'
 import { EDITOR_OVERLAY_LAYER } from '../../lib/layers'
 import { useDiagramStore } from '../../store/diagramStore'
-import { GRID_SIZE } from '../../types'
+import { GRID_SIZE, type ElbowEndpointOffsets } from '../../types'
 
-type Drag = { pointerId: number; handle: ElbowHandle; start: number; offsets: number[]; original?: number[]; moved: boolean }
+type Drag = { pointerId: number; handle: ElbowHandle; start: number; offsets: number[]; original?: number[]; endpointOffsets?: ElbowEndpointOffsets; moved: boolean }
 
 export function ElbowHandles({ id, handles, offsets }: { id: string; handles: ElbowHandle[]; offsets: number[] }) {
   const { screenToFlowPosition } = useReactFlow()
@@ -26,11 +26,17 @@ export function ElbowHandles({ id, handles, offsets }: { id: string; handles: El
     const current = drag.current
     if (!current || current.pointerId !== event.pointerId) return
     event.stopPropagation()
-    const { axis, index } = current.handle
+    const { axis, index, endpoint } = current.handle
     const point = screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false })
     const delta = point[axis] - current.start
     if (!delta && !current.moved) return
     current.moved = true
+    if (endpoint) {
+      update(id, { elbowEndpointOffsets: delta
+        ? { ...current.endpointOffsets, [endpoint]: (current.endpointOffsets?.[endpoint] ?? 0) + delta }
+        : current.endpointOffsets })
+      return
+    }
     const next = [...current.offsets]
     next[index] += delta
     update(id, { elbowOffsets: delta ? next : current.original })
@@ -40,11 +46,11 @@ export function ElbowHandles({ id, handles, offsets }: { id: string; handles: El
     <EdgeLabelRenderer>
       {handles.map((handle) => (
         <button
-          key={handle.index}
+          key={handle.endpoint ?? handle.index}
           type="button"
           className="nodrag nopan nowheel edge-elbow-handle absolute flex h-6 w-6 items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-blue-500"
-          aria-label={`Move arrow segment ${handle.index + 1} ${handle.axis === 'x' ? 'horizontally' : 'vertically'}`}
-          title="Drag to adjust this elbow. Arrow keys to nudge. Double-click to reset."
+          aria-label={`Move arrow ${handle.endpoint ? `${handle.endpoint === 'source' ? 'start' : 'end'} segment` : `segment ${handle.index + 1}`} ${handle.axis === 'x' ? 'horizontally' : 'vertically'}`}
+          title={handle.endpoint ? 'Drag sideways to add bends while keeping the connection attached. Arrow keys to nudge. Double-click to reset.' : 'Drag to adjust this elbow. Arrow keys to nudge. Double-click to reset.'}
           style={{
             zIndex: EDITOR_OVERLAY_LAYER,
             pointerEvents: 'all', touchAction: 'none', cursor: handle.axis === 'x' ? 'ew-resize' : 'ns-resize',
@@ -57,8 +63,8 @@ export function ElbowHandles({ id, handles, offsets }: { id: string; handles: El
             event.currentTarget.focus()
             const point = screenToFlowPosition({ x: event.clientX, y: event.clientY }, { snapToGrid: false })
             begin()
-            const original = useDiagramStore.getState().edges.find((edge) => edge.id === id)?.data?.elbowOffsets
-            drag.current = { pointerId: event.pointerId, handle, start: point[handle.axis], offsets: [...offsets], original, moved: false }
+            const data = useDiagramStore.getState().edges.find((edge) => edge.id === id)?.data
+            drag.current = { pointerId: event.pointerId, handle, start: point[handle.axis], offsets: [...offsets], original: data?.elbowOffsets, endpointOffsets: data?.elbowEndpointOffsets, moved: false }
             event.currentTarget.setPointerCapture(event.pointerId)
           }}
           onPointerMove={move}
@@ -66,7 +72,7 @@ export function ElbowHandles({ id, handles, offsets }: { id: string; handles: El
           onPointerCancel={finish}
           onLostPointerCapture={finish}
           onClick={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => { event.stopPropagation(); update(id, { elbowOffsets: undefined }) }}
+          onDoubleClick={(event) => { event.stopPropagation(); update(id, { elbowOffsets: undefined, elbowEndpointOffsets: undefined }) }}
           onKeyDown={(event) => {
             if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
             event.preventDefault()
@@ -74,8 +80,14 @@ export function ElbowHandles({ id, handles, offsets }: { id: string; handles: El
             const negative = handle.axis === 'x' ? 'ArrowLeft' : 'ArrowUp'
             const positive = handle.axis === 'x' ? 'ArrowRight' : 'ArrowDown'
             if (event.key !== negative && event.key !== positive) return
+            const delta = (event.key === negative ? -1 : 1) * GRID_SIZE * (event.shiftKey ? 2 : 1)
+            if (handle.endpoint) {
+              const current = useDiagramStore.getState().edges.find((edge) => edge.id === id)?.data?.elbowEndpointOffsets
+              update(id, { elbowEndpointOffsets: { ...current, [handle.endpoint]: (current?.[handle.endpoint] ?? 0) + delta } })
+              return
+            }
             const next = [...offsets]
-            next[handle.index] += (event.key === negative ? -1 : 1) * GRID_SIZE * (event.shiftKey ? 2 : 1)
+            next[handle.index] += delta
             update(id, { elbowOffsets: next })
           }}
         >

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { newPage, parseDiagram, toFile } from '../lib/persistence'
 import { wholeDiagram } from '../lib/document'
 import { applyLayoutResult } from '../layout/apply'
+import { copySelection } from '../lib/clipboard'
+import { parseClipboard, serializeClipboard } from '../lib/clipboardFormat'
 import { useDiagramStore } from './diagramStore'
 import type { AppEdge, AppNode } from '../types'
 
@@ -33,6 +35,52 @@ describe('elbow editing', () => {
     state().beginHistoryBatch()
     state().endHistoryBatch()
     expect(state().past).toHaveLength(0)
+  })
+
+  it('keeps endpoint bends through a single drag undo, JSON, collaboration and portable copying', () => {
+    state().updateEdgeData('ab', { elbowOffsets: [42] })
+    state().beginHistoryBatch()
+    state().updateEdgeData('ab', { elbowEndpointOffsets: { source: 20, target: -40 } })
+    state().updateEdgeData('ab', { elbowEndpointOffsets: { source: 20, target: -100 } })
+    state().endHistoryBatch()
+    expect(state().past).toHaveLength(2)
+    state().undo()
+    expect(state().edges[0].data?.elbowEndpointOffsets).toBeUndefined()
+    expect(state().edges[0].data?.elbowOffsets).toEqual([42])
+    state().redo()
+    const saved = parseDiagram(JSON.parse(JSON.stringify(toFile(wholeDiagram(state())))))
+    expect(saved.pages[0].edges[0].data?.elbowEndpointOffsets).toEqual({ source: 20, target: -100 })
+    state().applyRemoteDoc(saved)
+    state().selectAll()
+    const copied = parseClipboard(serializeClipboard(copySelection(state().nodes, state().edges)!))
+    state().addPage()
+    state().paste(copied)
+    expect(state().edges[0].data).toMatchObject({ elbowOffsets: [42], elbowEndpointOffsets: { source: 20, target: -100 } })
+    state().selectAll()
+    state().duplicate()
+    expect(state().edges[1].data?.elbowEndpointOffsets).toEqual({ source: 20, target: -100 })
+  })
+
+  it('clears endpoint bends when reapplying a route preset or automatic routing', () => {
+    for (const side of ['top', 'auto'] as const) {
+      state().routeEdges(['ab'], side)
+      state().updateEdgeData('ab', { elbowEndpointOffsets: { target: -80 } })
+      state().routeEdges(['ab'], side)
+      expect(state().edges[0].data?.elbowEndpointOffsets).toBeUndefined()
+      state().undo()
+      expect(state().edges[0].data?.elbowEndpointOffsets).toEqual({ target: -80 })
+    }
+  })
+
+  it('only imports valid, bounded endpoint offsets', () => {
+    for (const value of [NaN, Infinity, 'bad', 1_000_001, null, {}]) {
+      const parsed = parseDiagram({ nodes, edges: [{ ...edge, data: { ...edge.data, elbowEndpointOffsets: { source: value, target: -40, extra: 20 } } }] })
+      expect(parsed.pages[0].edges[0].data?.elbowEndpointOffsets).toEqual({ target: -40 })
+    }
+    for (const value of ['bad', [], null, { source: Infinity }]) {
+      const parsed = parseDiagram({ nodes, edges: [{ ...edge, data: { ...edge.data, elbowEndpointOffsets: value } }] })
+      expect(parsed.pages[0].edges[0].data?.elbowEndpointOffsets).toBeUndefined()
+    }
   })
 
   it.each(['top', 'bottom', 'left', 'right'] as const)('routes around both nodes on the %s with one undo step', (side) => {
@@ -116,11 +164,12 @@ describe('elbow editing', () => {
   })
 
   it('clears manual bends only on arrows rerouted by a layout action', () => {
-    const adjusted = { ...edge, data: { ...edge.data!, elbowOffsets: [40] } }
+    const adjusted = { ...edge, data: { ...edge.data!, elbowOffsets: [40], elbowEndpointOffsets: { target: -80 } } }
     const result = applyLayoutResult(nodes, [adjusted], {
       positions: {}, groupSizes: {}, iconSizes: {},
       edgeHandles: { ab: { sourceHandle: 'bottom', targetHandle: 'top' } },
     })
     expect(result.edges[0].data?.elbowOffsets).toBeUndefined()
+    expect(result.edges[0].data?.elbowEndpointOffsets).toBeUndefined()
   })
 })

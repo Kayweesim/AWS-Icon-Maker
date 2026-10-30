@@ -140,6 +140,10 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
   const data = isObject(raw.data) ? raw.data : {}
   const handle = (value: unknown) => (typeof value === 'string' && parseHandle(value) ? value : null)
   const strokeColor = normalizeColor(data.strokeColor)
+  const endpointOffsets = isObject(data.elbowEndpointOffsets) ? data.elbowEndpointOffsets : {}
+  const cleanEndpointOffsets = Object.fromEntries(['source', 'target'].flatMap((key) =>
+    isNumber(endpointOffsets[key]) && Math.abs(endpointOffsets[key]) <= 1_000_000 ? [[key, endpointOffsets[key]]] : [],
+  ))
   const edgeData: AwsEdgeData = {
     ...DEFAULT_EDGE_DATA,
     label: str(data.label),
@@ -150,6 +154,7 @@ function parseEdge(raw: unknown, nodeIds: Set<string>): AppEdge | null {
     ...parseTextFormatting(data),
     ...(strokeColor && { strokeColor }),
     ...(validArrowWidth(data.strokeWidth) && { strokeWidth: data.strokeWidth }),
+    ...(Object.keys(cleanEndpointOffsets).length > 0 && { elbowEndpointOffsets: cleanEndpointOffsets }),
     ...(Array.isArray(data.elbowOffsets) && data.elbowOffsets.length > 0 && data.elbowOffsets.length <= 16 &&
       data.elbowOffsets.every((value) => isNumber(value) && Math.abs(value) <= 1_000_000)
       ? { elbowOffsets: [...data.elbowOffsets] as number[] } : {}),

@@ -467,9 +467,9 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         const handles = side === 'auto'
           ? facingHandles(connectionPoint(source, byId), connectionPoint(target, byId))
           : { sourceHandle: side, targetHandle: side }
-        const data = { ...DEFAULT_EDGE_DATA, ...edge.data, pathType: 'step' as const, elbowOffsets }
+        const data = { ...DEFAULT_EDGE_DATA, ...edge.data, pathType: 'step' as const, elbowOffsets, elbowEndpointOffsets: undefined }
         if (edge.sourceHandle === handles.sourceHandle && edge.targetHandle === handles.targetHandle &&
-          edge.data?.pathType === 'step' && JSON.stringify(edge.data?.elbowOffsets) === JSON.stringify(elbowOffsets)) return edge
+          edge.data?.pathType === 'step' && JSON.stringify(edge.data?.elbowOffsets) === JSON.stringify(elbowOffsets) && !edge.data?.elbowEndpointOffsets) return edge
         changed = true
         return { ...edge, ...handles, data }
       })

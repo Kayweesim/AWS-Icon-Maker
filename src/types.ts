@@ -41,6 +41,7 @@ export type AppNode = IconNode | GroupNode | TextNode | ImageNode
 
 export type EdgePathType = 'step' | 'straight' | 'bezier'
 export type EdgeArrows = 'end' | 'both' | 'none'
+export type ElbowEndpointOffsets = { source?: number; target?: number }
 
 export type AwsEdgeData = TextFormatting & {
   label: string
@@ -53,6 +54,8 @@ export type AwsEdgeData = TextFormatting & {
   strokeWidth?: number
   /** Perpendicular offsets of the internal elbow segments, relative to automatic routing. */
   elbowOffsets?: number[]
+  /** Sideways movement of an end segment, with extra bends keeping its connection fixed. */
+  elbowEndpointOffsets?: ElbowEndpointOffsets
 }
 
 export type AppEdge = Edge<AwsEdgeData, 'aws'>

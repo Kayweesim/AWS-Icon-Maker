@@ -142,7 +142,7 @@ const geometry = (x: number, y: number, width: number, height: number) =>
   `<mxGeometry x="${Math.round(x)}" y="${Math.round(y)}" width="${Math.round(width)}" height="${Math.round(height)}" as="geometry" />`
 
 function edgeGeometry(edge: AppEdge, source: AppNode, target: AppNode, nodes: Map<string, AppNode>, offset: number) {
-  if ((edge.data?.pathType ?? 'step') !== 'step' || !edge.data?.elbowOffsets) return '  <mxGeometry relative="1" as="geometry" />'
+  if ((edge.data?.pathType ?? 'step') !== 'step' || (!edge.data?.elbowOffsets && !edge.data?.elbowEndpointOffsets)) return '  <mxGeometry relative="1" as="geometry" />'
   const endpoint = (node: AppNode, handle: string | null | undefined, fallback: Position) => {
     const position = absolutePosition(node, nodes)
     const size = layoutSize(node)
@@ -160,7 +160,7 @@ function edgeGeometry(edge: AppEdge, source: AppNode, target: AppNode, nodes: Ma
   }
   const start = endpoint(source, edge.sourceHandle, Position.Bottom)
   const end = endpoint(target, edge.targetHandle, Position.Top)
-  const route = elbowRoute({ sourceX: start.x, sourceY: start.y, targetX: end.x, targetY: end.y, sourcePosition: start.side, targetPosition: end.side }, edge.data.elbowOffsets)
+  const route = elbowRoute({ sourceX: start.x, sourceY: start.y, targetX: end.x, targetY: end.y, sourcePosition: start.side, targetPosition: end.side }, edge.data.elbowOffsets, edge.data.elbowEndpointOffsets)
   const points = route.points.slice(1, -1).map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')
   return `  <mxGeometry relative="1" as="geometry"><Array as="points">${points}</Array></mxGeometry>`
 }
