@@ -6,6 +6,7 @@ import type { IconNode } from '../../types'
 import { EdgeProperties } from './EdgeProperties'
 import { GroupProperties, IconProperties, IconSizeField, ImageProperties, TextProperties } from './NodeProperties'
 import { TextFormattingFields } from './TextFormattingFields'
+import { LayerControls } from './LayerControls'
 
 function PanelAction({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: ReactNode }) {
   return (
@@ -71,6 +72,7 @@ export function PropertiesPanel() {
     >
       <header className="border-b border-zinc-100 px-3.5 py-2.5 text-[12.5px] font-semibold text-zinc-800">{title}</header>
       <div className="flex flex-col gap-4 overflow-y-auto px-3.5 py-3.5">
+        <LayerControls />
         {body}
         <TextFormattingFields key={[...nodes.map((node) => node.id), ...edges.map((edge) => edge.id)].join(',')} nodes={nodes} edges={edges} />
       </div>

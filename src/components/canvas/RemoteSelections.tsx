@@ -9,6 +9,7 @@ import {
 import { presenceOf } from '../../collab/client'
 import { presenceInitials } from '../../collab/room'
 import { absoluteRect } from '../../lib/geometry'
+import { EDITOR_OVERLAY_LAYER } from '../../lib/layers'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { AppNode } from '../../types'
 
@@ -107,7 +108,7 @@ export function RemoteSelections({ nodes }: { nodes: AppNode[] }) {
   return (
     <ViewportPortal>
       {indicators.map(({ nodeId, rect, users }) => (
-        <div key={nodeId} className="pointer-events-none absolute top-0 left-0" style={{ zIndex: 1002 }}>
+        <div key={nodeId} className="pointer-events-none absolute top-0 left-0" style={{ zIndex: EDITOR_OVERLAY_LAYER }}>
           <div
             aria-hidden="true"
             className="pointer-events-none absolute top-0 left-0"

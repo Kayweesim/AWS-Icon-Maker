@@ -5,6 +5,7 @@ import {
   getSmoothStepPath,
   getStraightPath,
   Position,
+  useStore,
   type EdgeProps,
 } from '@xyflow/react'
 import { memo } from 'react'
@@ -15,6 +16,7 @@ import type { AppEdge } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
 import { ElbowHandles } from './ElbowHandles'
 import { arrowAppearance, arrowheadGeometry, DEFAULT_EDGE_TEXT_COLOR } from '../../lib/appearance'
+import { EDITOR_OVERLAY_LAYER } from '../../lib/layers'
 
 const SELECTED = '#3B82F6'
 
@@ -54,6 +56,7 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
   const setEditingId = useDiagramStore((s) => s.setEditingId)
   const updateEdgeData = useDiagramStore((s) => s.updateEdgeData)
   const offset = useDiagramStore((s) => parallelEdgeOffsets(s.edges).get(id) ?? 0)
+  const zIndex = useStore((s) => s.edgeLookup.get(id)?.zIndex ?? 0)
 
   const { path: [path, labelX, labelY], route } = buildPath(props, offset)
   const { color, width } = arrowAppearance(data)
@@ -93,7 +96,7 @@ function AwsEdgeComponent(props: EdgeProps<AppEdge>) {
         <EdgeLabelRenderer>
           <div
             className="nodrag nopan absolute"
-            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - (selected && route ? 18 : 0)}px)`, pointerEvents: 'all' }}
+            style={{ zIndex: editing ? EDITOR_OVERLAY_LAYER : zIndex + 1, transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY - (selected && route ? 18 : 0)}px)`, pointerEvents: 'all' }}
             onDoubleClick={() => setEditingId(id)}
           >
             <EditableLabel

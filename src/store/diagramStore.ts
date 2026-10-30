@@ -23,6 +23,7 @@ import { cloneClipboard, copySelection, selectionWithDescendants, type Clipboard
 import { absolutePosition, absoluteRect, descendantIds, findParentGroup, nodeSize, sortNodes } from '../lib/geometry'
 import { HISTORY_LIMIT, snapshotKey, type Snapshot } from '../lib/history'
 import { newId } from '../lib/ids'
+import { moveLayers, newElementLayer, type LayerAction } from '../lib/layers'
 import type { PreparedImage } from '../lib/imageDrop'
 import { mediaSize, resizeMediaNode, type MediaSize, type ResizeAnchor } from '../lib/mediaResize'
 import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
@@ -86,6 +87,8 @@ export type DiagramState = {
   updateEdgesData: (ids: string[], patch: Partial<AwsEdgeData>) => void
   /** Format any mix of selected captions and arrow labels in one undo step. */
   setTextFormatting: (nodeIds: string[], edgeIds: string[], patch: TextFormatting) => void
+  /** Changes drawing order for selected nodes and edges in one undo step. */
+  moveSelectionLayer: (action: LayerAction) => void
   /** Reconnects selected arrows around the same side of both nodes, or restores facing sides. */
   routeEdges: (ids: string[], side: HandleSide | 'auto') => void
   /** Resizes icons around their centres as a single undo step. */
@@ -302,7 +305,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       const style = arrowPreset(get().arrowPreset).style
       // Unlike React Flow's addEdge, allow several arrows between the same dots (say a request and
       // an async reply). They're drawn side by side; see parallelEdgeOffsets.
-      const edge: AppEdge = { ...connection, id: newId('e'), type: 'aws', data: { ...DEFAULT_EDGE_DATA, ...style } }
+      const edge: AppEdge = { ...connection, id: newId('e'), type: 'aws', zIndex: newElementLayer(get()), data: { ...DEFAULT_EDGE_DATA, ...style } }
       set({ ...record(), edges: [...get().edges, edge] })
     },
 
@@ -312,6 +315,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         nodes: insertNode(get().nodes, {
           id: newId('n'),
           type: 'icon',
+          zIndex: newElementLayer(get()),
           position: {
             x: snapToGrid(centre.x - iconNodeWidth(ICON_SIZE) / 2),
             y: snapToGrid(centre.y - ICON_SIZE / 2),
@@ -328,6 +332,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         nodes: insertNode(get().nodes, {
           id: newId('i'),
           type: 'image',
+          zIndex: newElementLayer(get()),
           position: {
             x: snapToGrid(centre.x - imageNodeWidth(image.width) / 2),
             y: snapToGrid(centre.y - image.height / 2),
@@ -347,6 +352,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         nodes: insertNode(get().nodes, {
           id: newId('g'),
           type: 'awsGroup',
+          zIndex: newElementLayer(get()),
           position,
           width: style.width,
           height: style.height,
@@ -364,6 +370,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         nodes: insertNode(get().nodes, {
           id,
           type: 'text',
+          zIndex: newElementLayer(get()),
           // The text's first line sits at the click point.
           position: { x: snapToGrid(position.x), y: snapToGrid(position.y - TEXT_FONT_SIZE) },
           selected: true,
@@ -408,6 +415,14 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     },
 
     updateEdgeData: (id, patch) => get().updateEdgesData([id], patch),
+
+    moveSelectionLayer: (action) => {
+      if (!moveLayers(get(), action)) return
+      const history = record()
+      // Recording finishes any running layout animation; keep its final geometry.
+      const updated = moveLayers(get(), action)
+      if (updated) set({ ...history, ...updated })
+    },
 
     setTextFormatting: (nodeIds, edgeIds, patch) => {
       const nodes = new Set(nodeIds), edges = new Set(edgeIds)
@@ -541,6 +556,7 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         id: newId('e'),
         type: 'aws',
         source: sourceId,
+        zIndex: newElementLayer(get()),
         target: targetId,
         ...facingHandles(connectionPoint(source, byId), connectionPoint(target, byId)),
         data: { ...DEFAULT_EDGE_DATA, ...arrowPreset(preset).style },

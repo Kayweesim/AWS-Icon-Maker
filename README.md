@@ -137,6 +137,12 @@ yours. Anything that arrives is validated with the same parser as an opened file
   The `.drawio` export opens in draw.io / diagrams.net with native AWS group containers, embedded
   icons and images, and editable arrows and labels.
 - **Properties panel:** appears when something is selected.
+- **Layers:** select an arrow, icon, image, text box or group, then use **Layer** in the
+  properties panel to **Bring to front**, **Bring forward**, **Send backward** or **Send to back**.
+  For example, bring an arrow to the front to show it across a filled subnet. Multiple selected
+  elements keep their relative order, and each action is one undo step. Layer changes keep
+  positions and group membership intact, survive saving, copying and collaboration, and appear
+  in PNG/SVG exports.
 - **Keyboard shortcuts:** press <kbd>?</kbd> in the app for the full list.
 
 ### Export as Code

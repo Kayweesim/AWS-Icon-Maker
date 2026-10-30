@@ -1,6 +1,7 @@
 import { EdgeLabelRenderer, useReactFlow, useStore } from '@xyflow/react'
 import { useEffect, useRef, type PointerEvent } from 'react'
 import type { ElbowHandle } from '../../lib/elbowRoute'
+import { EDITOR_OVERLAY_LAYER } from '../../lib/layers'
 import { useDiagramStore } from '../../store/diagramStore'
 import { GRID_SIZE } from '../../types'
 
@@ -45,6 +46,7 @@ export function ElbowHandles({ id, handles, offsets }: { id: string; handles: El
           aria-label={`Move arrow segment ${handle.index + 1} ${handle.axis === 'x' ? 'horizontally' : 'vertically'}`}
           title="Drag to adjust this elbow. Arrow keys to nudge. Double-click to reset."
           style={{
+            zIndex: EDITOR_OVERLAY_LAYER,
             pointerEvents: 'all', touchAction: 'none', cursor: handle.axis === 'x' ? 'ew-resize' : 'ns-resize',
             transform: `translate(${handle.position.x}px, ${handle.position.y}px) scale(${1 / zoom}) translate(-50%, -50%)`,
           }}
