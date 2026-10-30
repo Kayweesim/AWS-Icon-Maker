@@ -29,6 +29,43 @@ describe('editable elbow routes', () => {
     expect(edited.handles[0].position.y).toBe(initial.handles[0].position.y)
   })
 
+  it('moves the final vertical leg left while keeping the Lambda top attachment fixed', () => {
+    const params = { sourceX: 125, sourceY: 73, targetX: 805, targetY: 710, sourcePosition: Position.Bottom, targetPosition: Position.Top }
+    const original = elbowRoute(params, [198.5])
+    const edited = elbowRoute(params, [198.5], { target: -100 })
+    expect(edited.points).toEqual([
+      { x: 125, y: 73 }, { x: 125, y: 590 }, { x: 705, y: 590 },
+      { x: 705, y: 690 }, { x: 805, y: 690 }, { x: 805, y: 710 },
+    ])
+    expect(edited.endpointHandles.find((handle) => handle.endpoint === 'target')!.position.x)
+      .toBe(original.endpointHandles.find((handle) => handle.endpoint === 'target')!.position.x - 100)
+    expect(edited.offsets).toEqual(original.offsets)
+    expect(elbowRoute(params, [198.5], { target: 0 }).points).toEqual(original.points)
+  })
+
+  it('keeps both endpoint edits orthogonal for every attachment combination, including straight and backwards routes', () => {
+    for (const sourcePosition of positions) for (const targetPosition of positions) {
+      for (const targetX of [-300, 0, 300]) for (const targetY of [0, 200]) {
+        const params = { ...endpoints, sourcePosition, targetPosition, targetX, targetY }
+        const original = elbowRoute(params)
+        const route = elbowRoute(params, original.offsets.map((_, i) => (i + 1) * 24), { source: 40, target: -60 })
+        expect(route.points[0]).toEqual({ x: 0, y: 0 })
+        expect(route.points.at(-1)).toEqual({ x: targetX, y: targetY })
+        for (let i = 1; i < route.points.length; i++) {
+          expect(route.points[i].x === route.points[i - 1].x || route.points[i].y === route.points[i - 1].y).toBe(true)
+        }
+        expect(route.path).not.toMatch(/NaN|Infinity/)
+      }
+    }
+  })
+
+  it('keeps endpoint bends relative when the diagram moves and retains interior edits', () => {
+    const original = elbowRoute(endpoints, [42], { source: -40, target: 60 })
+    const moved = elbowRoute({ ...endpoints, sourceX: 24, sourceY: 24, targetX: 324, targetY: 224 }, [42], { source: -40, target: 60 })
+    expect(moved.points).toEqual(original.points.map(({ x, y }) => ({ x: x + 24, y: y + 24 })))
+    expect(original.points).toHaveLength(elbowRoute(endpoints, [42]).points.length + 4)
+  })
+
   it.each([Position.Top, Position.Bottom])('makes a draggable U-shaped route on the %s of aligned nodes', (side) => {
     const sign = side === Position.Top ? -1 : 1
     const params = { ...endpoints, targetY: 0, sourcePosition: side, targetPosition: side }
