@@ -5,7 +5,7 @@ import { mediaSize, proportionalSize } from '../../lib/mediaResize'
 import { mod } from '../../lib/platform'
 import { useDiagramStore } from '../../store/diagramStore'
 import type { GroupNode, IconNode, ImageNode, TextNode } from '../../types'
-import { Field, NumberField, Segmented, SelectField, TextField } from './controls'
+import { Field, NumberField, Segmented, SelectField, TextField, Toggle } from './controls'
 
 const groupOptions = GROUP_TYPES.map((type) => ({ value: type, label: groupStyle(type).label }))
 const sizeOptions = ICON_SIZES.map((size) => ({ value: String(size), label: `${size}px` }))
@@ -36,6 +36,19 @@ export function IconSizeField({ nodes }: { nodes: IconNode[] }) {
   )
 }
 
+export function BadgeField({ nodes }: { nodes: IconNode[] }) {
+  const setNodeBadge = useDiagramStore((s) => s.setNodeBadge)
+  const on = nodes.filter((node) => node.data.badge === 'padlock').length
+
+  return (
+    <Toggle
+      label="Padlock badge"
+      checked={on === 0 ? false : on === nodes.length ? true : undefined}
+      onChange={(checked) => setNodeBadge(nodes.map((node) => node.id), checked ? 'padlock' : null)}
+    />
+  )
+}
+
 export function IconProperties({ node }: { node: IconNode }) {
   const updateNodeData = useDiagramStore((s) => s.updateNodeData)
 
@@ -49,6 +62,7 @@ export function IconProperties({ node }: { node: IconNode }) {
       </div>
       <TextField key={node.id} label="Label" value={node.data.label} onCommit={(label) => updateNodeData(node.id, { label })} />
       <IconSizeField nodes={[node]} />
+      <BadgeField nodes={[node]} />
     </>
   )
 }

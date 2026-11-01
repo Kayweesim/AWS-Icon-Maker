@@ -8,12 +8,17 @@ export type TextFormatting = {
   textColor?: string
 }
 
+/** A small marker drawn over a node's artwork. */
+export type NodeBadge = 'padlock'
+
 export type IconNodeData = TextFormatting & {
   label: string
   iconPath: string
   iconId: string
   /** Rendered icon size in px. Missing on icons saved before sizes existed (drawn at 48px). */
   iconSize?: number
+  /** Absent when the node has no badge. */
+  badge?: NodeBadge
 }
 
 export type GroupNodeData = TextFormatting & {

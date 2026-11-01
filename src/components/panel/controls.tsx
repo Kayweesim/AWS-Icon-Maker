@@ -49,6 +49,27 @@ export function Segmented<T extends string>({
   )
 }
 
+/** On/off switch. `checked` is undefined when a multi-selection is mixed; a click then turns all on. */
+export function Toggle({ label, checked, onChange }: { label: string; checked: boolean | undefined; onChange: (checked: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked ?? 'mixed'}
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between gap-2 rounded text-left text-[12px] text-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+    >
+      <span>
+        {label}
+        {checked === undefined && <span className="ml-1.5 text-[11px] text-zinc-400">Mixed</span>}
+      </span>
+      <span className={`flex h-[18px] w-8 shrink-0 items-center rounded-full p-0.5 transition-colors ${checked ? 'justify-end bg-blue-600' : checked === undefined ? 'justify-center bg-blue-300' : 'justify-start bg-zinc-300'}`}>
+        <span className="h-3.5 w-3.5 rounded-full bg-white shadow-sm" />
+      </span>
+    </button>
+  )
+}
+
 const inputClass =
   'w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-[13px] text-zinc-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
 

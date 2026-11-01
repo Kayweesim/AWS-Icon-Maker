@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { groupOnlySelection, useDiagramStore } from '../../store/diagramStore'
 import type { IconNode } from '../../types'
 import { EdgeProperties } from './EdgeProperties'
-import { GroupProperties, IconProperties, IconSizeField, ImageProperties, TextProperties } from './NodeProperties'
+import { BadgeField, GroupProperties, IconProperties, IconSizeField, ImageProperties, TextProperties } from './NodeProperties'
 import { TextFormattingFields } from './TextFormattingFields'
 import { LayerControls } from './LayerControls'
 
@@ -59,6 +59,7 @@ export function PropertiesPanel() {
       body = (
         <>
           {icons.length > 0 && <IconSizeField nodes={icons} />}
+          {icons.length > 0 && <BadgeField nodes={icons} />}
           {edges.length > 0 && <EdgeProperties edges={edges} />}
         </>
       )

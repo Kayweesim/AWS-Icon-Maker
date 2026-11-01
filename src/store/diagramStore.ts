@@ -27,7 +27,7 @@ import { moveLayers, newElementLayer, type LayerAction } from '../lib/layers'
 import type { PreparedImage } from '../lib/imageDrop'
 import { mediaSize, resizeMediaNode, type MediaSize, type ResizeAnchor } from '../lib/mediaResize'
 import { EMPTY_PAGE, neighbourOf, nextPageName, type PageTab, type ParkedPage } from '../lib/pages'
-import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type SharedDoc, type TextFormatting } from '../types'
+import { GRID_SIZE, type AppEdge, type AppNode, type AwsEdgeData, type DiagramPage, type NodeBadge, type SharedDoc, type TextFormatting } from '../types'
 
 /** What clicking on the canvas does. */
 export type Tool =
@@ -93,6 +93,8 @@ export type DiagramState = {
   routeEdges: (ids: string[], side: HandleSide | 'auto') => void
   /** Resizes icons around their centres as a single undo step. */
   setIconSize: (ids: string[], size: number) => void
+  /** Adds or removes a badge on icons as a single undo step. Leaves no field behind when removed. */
+  setNodeBadge: (ids: string[], badge: NodeBadge | null) => void
   resizeMedia: (id: string, size: MediaSize, anchor?: ResizeAnchor) => void
   setEditingId: (id: string | null) => void
 
@@ -480,6 +482,16 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
       const targets = new Set(ids)
       const nodes = get().nodes.map((node) => targets.has(node.id) && node.type === 'icon'
         ? resizeMediaNode(node, { width: size, height: size }) : node)
+      if (nodes.some((node, index) => node !== get().nodes[index])) set({ ...record(), nodes })
+    },
+
+    setNodeBadge: (ids, badge) => {
+      const targets = new Set(ids)
+      const nodes = get().nodes.map((node) => {
+        if (!targets.has(node.id) || node.type !== 'icon' || (node.data.badge ?? null) === badge) return node
+        const { badge: _removed, ...data } = node.data
+        return { ...node, data: badge ? { ...data, badge } : data }
+      })
       if (nodes.some((node, index) => node !== get().nodes[index])) set({ ...record(), nodes })
     },
 

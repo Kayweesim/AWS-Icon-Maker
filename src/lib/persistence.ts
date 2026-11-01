@@ -95,7 +95,7 @@ function parseNode(raw: unknown, index: number): AppNode {
     return {
       ...base,
       type: 'icon',
-      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }), ...formatting },
+      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }), ...(data.badge === 'padlock' && { badge: 'padlock' as const }), ...formatting },
     }
   }
 
