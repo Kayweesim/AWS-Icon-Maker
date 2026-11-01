@@ -9,8 +9,12 @@ const DELAY_MS = 400
 export function useAutosave() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
+    // Autosave is shared between tabs: a tab with nothing new to save must not overwrite newer work.
+    let unsaved = false
     const save = () => {
       clearTimeout(timer)
+      if (!unsaved) return
+      unsaved = false
       saveAutosave(wholeDiagram(useDiagramStore.getState()))
     }
 
@@ -22,6 +26,7 @@ export function useAutosave() {
         state.pages !== prev.pages ||
         state.parked !== prev.parked
       if (!changed) return
+      unsaved = true
       clearTimeout(timer)
       timer = setTimeout(save, DELAY_MS)
     })

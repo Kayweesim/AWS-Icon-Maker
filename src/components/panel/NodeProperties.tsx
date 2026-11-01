@@ -38,13 +38,13 @@ export function IconSizeField({ nodes }: { nodes: IconNode[] }) {
 
 export function BadgeField({ nodes }: { nodes: IconNode[] }) {
   const setNodeBadge = useDiagramStore((s) => s.setNodeBadge)
-  const on = nodes.filter((node) => node.data.badge === 'padlock').length
+  const on = nodes.filter((node) => node.data.badge === 'vpc').length
 
   return (
     <Toggle
-      label="Padlock badge"
+      label="VPC badge"
       checked={on === 0 ? false : on === nodes.length ? true : undefined}
-      onChange={(checked) => setNodeBadge(nodes.map((node) => node.id), checked ? 'padlock' : null)}
+      onChange={(checked) => setNodeBadge(nodes.map((node) => node.id), checked ? 'vpc' : null)}
     />
   )
 }

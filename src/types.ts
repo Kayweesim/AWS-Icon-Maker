@@ -9,7 +9,7 @@ export type TextFormatting = {
 }
 
 /** A small marker drawn over a node's artwork. */
-export type NodeBadge = 'padlock'
+export type NodeBadge = 'vpc'
 
 export type IconNodeData = TextFormatting & {
   label: string

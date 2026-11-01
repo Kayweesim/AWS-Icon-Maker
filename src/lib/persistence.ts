@@ -92,10 +92,12 @@ function parseNode(raw: unknown, index: number): AppNode {
     const iconPath = str(data.iconPath)
     if (!ICON_PATH.test(iconPath)) throw new Error(`${where} references an unknown icon`)
     const iconSize = isNumber(data.iconSize) && data.iconSize >= MIN_ICON_SIZE && data.iconSize <= MAX_ICON_SIZE ? Math.round(data.iconSize) : undefined
+    // 'padlock' is what this badge was first saved as.
+    const badge = data.badge === 'vpc' || data.badge === 'padlock' ? 'vpc' as const : undefined
     return {
       ...base,
       type: 'icon',
-      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }), ...(data.badge === 'padlock' && { badge: 'padlock' as const }), ...formatting },
+      data: { label: str(data.label), iconPath, iconId: str(data.iconId), ...(iconSize && { iconSize }), ...(badge && { badge }), ...formatting },
     }
   }
 

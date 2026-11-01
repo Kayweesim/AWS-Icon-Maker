@@ -12,7 +12,7 @@ const icon = (id: string, x: number): IconNode => ({
 const edge: AppEdge = { id: 'ab', type: 'aws', source: 'a', target: 'b', sourceHandle: 'right', targetHandle: 'left', data: { label: '', dashed: false, pathType: 'step', arrows: 'end' } }
 const icons = () => state().nodes as IconNode[]
 
-describe('padlock badge', () => {
+describe('VPC badge', () => {
   beforeEach(() => {
     state().endHistoryBatch()
     state().loadDiagram({ pages: [newPage('Badges', { nodes: [icon('a', 0), icon('b', 200)], edges: [edge] })] })
@@ -21,8 +21,8 @@ describe('padlock badge', () => {
   it('changes several nodes in one undo step and touches nothing else', () => {
     const before = icons().map(({ position, width, height, data }) => ({ position, width, height, data: { ...data } }))
     const edges = state().edges
-    state().setNodeBadge(['a', 'b'], 'padlock')
-    expect(icons().map((n) => n.data.badge)).toEqual(['padlock', 'padlock'])
+    state().setNodeBadge(['a', 'b'], 'vpc')
+    expect(icons().map((n) => n.data.badge)).toEqual(['vpc', 'vpc'])
     icons().forEach((node, i) => {
       expect({ ...node.data, badge: undefined }).toEqual({ ...before[i].data, badge: undefined })
       expect(node.position).toEqual(before[i].position)
@@ -34,12 +34,12 @@ describe('padlock badge', () => {
     state().undo()
     expect(icons().map((n) => n.data.badge)).toEqual([undefined, undefined])
     state().redo()
-    expect(icons().map((n) => n.data.badge)).toEqual(['padlock', 'padlock'])
+    expect(icons().map((n) => n.data.badge)).toEqual(['vpc', 'vpc'])
   })
 
   it('leaves no field behind when removed, and adds no history for a no-op', () => {
-    state().setNodeBadge(['a'], 'padlock')
-    state().setNodeBadge(['a'], 'padlock')
+    state().setNodeBadge(['a'], 'vpc')
+    state().setNodeBadge(['a'], 'vpc')
     expect(state().past).toHaveLength(1)
     state().setNodeBadge(['a'], null)
     expect(icons()[0].data).not.toHaveProperty('badge')
@@ -48,26 +48,26 @@ describe('padlock badge', () => {
   })
 
   it('completes a mixed selection without rewriting nodes that already have it', () => {
-    state().setNodeBadge(['a'], 'padlock')
+    state().setNodeBadge(['a'], 'vpc')
     const badged = icons()[0]
-    state().setNodeBadge(['a', 'b'], 'padlock')
+    state().setNodeBadge(['a', 'b'], 'vpc')
     expect(icons()[0]).toBe(badged)
-    expect(icons()[1].data.badge).toBe('padlock')
+    expect(icons()[1].data.badge).toBe('vpc')
   })
 
   it('ignores nodes that are not icons', () => {
     const text = { id: 't', type: 'text' as const, position: { x: 0, y: 0 }, data: { label: 'Note' } }
     state().loadDiagram({ pages: [newPage('Text', { nodes: [text], edges: [] })] })
-    state().setNodeBadge(['t'], 'padlock')
+    state().setNodeBadge(['t'], 'vpc')
     expect(state().nodes[0].data).not.toHaveProperty('badge')
     expect(state().past).toHaveLength(0)
   })
 
   it('survives a save and reload', () => {
-    state().setNodeBadge(['a'], 'padlock')
+    state().setNodeBadge(['a'], 'vpc')
     const file = JSON.parse(JSON.stringify(toFile({ name: 'D', pages: [newPage('P', { nodes: state().nodes, edges: state().edges })] })))
     const [a, b] = parseDiagram(file).pages[0].nodes as IconNode[]
-    expect(a.data.badge).toBe('padlock')
+    expect(a.data.badge).toBe('vpc')
     expect(b.data).not.toHaveProperty('badge')
   })
 
@@ -78,11 +78,16 @@ describe('padlock badge', () => {
     expect(parseDiagram({ nodes: [odd], edges: [] }).pages[0].nodes[0]).toEqual(plain)
   })
 
+  it('opens diagrams saved with the earlier padlock value as the VPC badge', () => {
+    const old = { id: 'a', type: 'icon', position: { x: 0, y: 0 }, data: { label: 'A', iconId: 'test', iconPath: '/aws-icons/test.svg', badge: 'padlock' } }
+    expect((parseDiagram({ nodes: [old], edges: [] }).pages[0].nodes[0] as IconNode).data.badge).toBe('vpc')
+  })
+
   it('survives copy and paste through the system clipboard format', () => {
-    state().setNodeBadge(['a'], 'padlock')
+    state().setNodeBadge(['a'], 'vpc')
     const copied = parseClipboard(serializeClipboard({ nodes: [icons()[0]], edges: [] }))
     state().paste(copied, { x: 500, y: 500 })
     expect(icons().at(-1)!.id).not.toBe('a')
-    expect(icons().at(-1)!.data.badge).toBe('padlock')
+    expect(icons().at(-1)!.data.badge).toBe('vpc')
   })
 })

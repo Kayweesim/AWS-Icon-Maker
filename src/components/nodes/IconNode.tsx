@@ -6,7 +6,7 @@ import { useDiagramStore } from '../../store/diagramStore'
 import type { IconNode as IconNodeType } from '../../types'
 import { EditableLabel } from '../common/EditableLabel'
 import { MediaResizeHandles } from './MediaResizeHandles'
-import { PadlockBadge } from './PadlockBadge'
+import { VpcBadge } from './VpcBadge'
 
 const ICON_SIDES = [Position.Top, Position.Right, Position.Left]
 
@@ -25,7 +25,7 @@ function IconNodeComponent({ id, data, selected }: NodeProps<IconNodeType>) {
       >
         {/* Resize the artwork independently of the fixed-width label below it. */}
         <img src={data.iconPath} alt="" width={size} height={size} draggable={false} className="block h-full w-full" />
-        {data.badge === 'padlock' && <PadlockBadge iconSize={size} />}
+        {data.badge === 'vpc' && <VpcBadge iconSize={size} />}
         {selected && selecting && !editing && <MediaResizeHandles id={id} kind="icon" />}
         {ICON_SIDES.map((side) => (
           <Handle key={side} id={side} type="source" position={side} />
