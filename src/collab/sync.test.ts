@@ -84,6 +84,16 @@ describe('room sync', () => {
     expect(state().doc).toBe(sameAgain)
   })
 
+  it('does not overwrite a newer client’s fields it cannot read', () => {
+    const fromNewerClient = { ...icon('a'), data: { ...icon('a').data, fieldFromTheFuture: true } } as AppNode
+    const doc = { name: 'Shared', pages: [page(activePage().id, 'Page 1', [fromNewerClient])] }
+    receiveFromRoom(doc)
+    expect(state().nodes[0].data).not.toHaveProperty('fieldFromTheFuture')
+
+    vi.advanceTimersByTime(PUSH_DEBOUNCE_MS * 2)
+    expect(state().doc).toBe(doc)
+  })
+
   it('does not make someone else’s edit an undo step', () => {
     const past = state().past.length
     receiveFromRoom({ name: 'Theirs', pages: [page(state().activePageId, 'Page 1', [icon('b')])] })

@@ -47,6 +47,9 @@ export function startSync(): Sync {
     applying = true
     try {
       useDiagramStore.getState().applyRemoteDoc(parsed)
+      // Validation drops fields this build doesn't know. Agree on the result, so receiving a newer
+      // client's document never publishes a stripped copy over it.
+      agreed = JSON.stringify(wholeDiagram(useDiagramStore.getState()))
     } finally {
       applying = false
     }
@@ -66,7 +69,7 @@ export function startSync(): Sync {
       state.name !== prev.name ||
       state.pages !== prev.pages ||
       state.parked !== prev.parked
-    if (changed) {
+    if (changed && !applying) {
       clearTimeout(timer)
       timer = setTimeout(flush, PUSH_DEBOUNCE_MS)
     }
