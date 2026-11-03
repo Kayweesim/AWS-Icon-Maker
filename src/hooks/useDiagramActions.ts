@@ -9,13 +9,18 @@ import { exportImage, type ImageFormat } from '../lib/export'
 import { wholeDiagram } from '../lib/document'
 import { parseDiagram, toFile } from '../lib/persistence'
 import { loadSvgImages } from '../lib/svg'
+import { recordVersion, type Version } from '../lib/versions'
 import { useDiagramStore } from '../store/diagramStore'
 import type { AppEdge, AppNode } from '../types'
 
-export type Notice = { kind: 'info' | 'error'; text: string }
+export type Notice = { kind: 'info' | 'error'; text: string; action?: { label: string; run: () => void } }
 
 export type DiagramActions = {
   newDiagram: () => void
+  /** Deletes a page, keeping a version first and offering to undo. */
+  deletePage: (id: string) => void
+  /** Replaces the diagram with a kept version, keeping the current one first so it can be undone. */
+  restoreVersion: (version: Version) => void
   save: () => void
   open: () => Promise<void>
   exportAs: (format: ImageFormat) => Promise<void>
@@ -24,6 +29,8 @@ export type DiagramActions = {
   tidy: () => void
   autoArrange: () => Promise<void>
 }
+
+const timeOf = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 
@@ -38,17 +45,49 @@ export function useDiagramActions() {
 
   useEffect(() => {
     if (!notice) return
-    const timer = setTimeout(() => setNotice(null), notice.kind === 'error' ? 6000 : 3000)
+    // Notices with an undo button stay longer so there's time to reach it.
+    const timer = setTimeout(() => setNotice(null), notice.action ? 10000 : notice.kind === 'error' ? 6000 : 3000)
     return () => clearTimeout(timer)
   }, [notice])
 
   const actions = useMemo<DiagramActions>(
     () => ({
       newDiagram: () => {
-        const { nodes, newDiagram } = useDiagramStore.getState()
-        if (nodes.length === 0) return
-        newDiagram()
-        setNotice({ kind: 'info', text: 'Started a new diagram — undo to bring the old one back' })
+        const state = useDiagramStore.getState()
+        const previous = wholeDiagram(state)
+        if (previous.pages.every((page) => page.nodes.length === 0) && previous.pages.length === 1) return
+        recordVersion(previous, 'new-diagram')
+        state.newDiagram()
+        setNotice({
+          kind: 'info',
+          text: 'Started a new diagram',
+          action: { label: 'Undo', run: () => useDiagramStore.getState().loadDiagram(previous) },
+        })
+      },
+
+      deletePage: (id) => {
+        const state = useDiagramStore.getState()
+        recordVersion(wholeDiagram(state), 'delete-page')
+        const deleted = state.deletePage(id)
+        if (!deleted) return
+        setNotice({
+          kind: 'info',
+          text: `Deleted “${deleted.page.name}”`,
+          action: { label: 'Undo', run: () => useDiagramStore.getState().restorePage(deleted) },
+        })
+      },
+
+      restoreVersion: (version) => {
+        const state = useDiagramStore.getState()
+        const current = wholeDiagram(state)
+        recordVersion(current, 'restore')
+        state.loadDiagram(version.diagram)
+        setNotice({
+          kind: 'info',
+          text: `Restored the version from ${timeOf(version.savedAt)}`,
+          action: { label: 'Undo', run: () => useDiagramStore.getState().loadDiagram(current) },
+        })
+        nextFrame().then(() => fitView({ padding: 0.15, maxZoom: 1, duration: 200 }))
       },
 
       save: () => {
@@ -62,6 +101,8 @@ export function useDiagramActions() {
         if (!file) return
         try {
           const diagram = parseDiagram(JSON.parse(await file.text()))
+          // Opening can replace pages that share an id with the file's, so keep what was there.
+          recordVersion(wholeDiagram(useDiagramStore.getState()), 'open')
           // Additive: pages already here are kept, and only those the file also has are replaced.
           useDiagramStore.getState().importDiagram(diagram)
           await nextFrame()

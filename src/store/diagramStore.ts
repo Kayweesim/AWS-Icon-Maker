@@ -142,7 +142,10 @@ export type DiagramState = {
   /** Adds a page after the current one and switches to it. */
   addPage: () => void
   /** Removes a page and everything on it. The last remaining page can't be removed. */
-  deletePage: (id: string) => void
+  /** Removes a page, returning what was removed so it can be put back with `restorePage`. */
+  deletePage: (id: string) => DeletedPage | undefined
+  /** Puts a deleted page back where it was, with its undo history, and opens it. */
+  restorePage: (deleted: DeletedPage) => void
   renamePage: (id: string, name: string) => void
   /** Parks the current page and opens another. Only changes what this user sees. */
   selectPage: (id: string) => void
@@ -260,6 +263,9 @@ let pasteCount = 0
 let finishLayoutAnimation: (() => void) | null = null
 
 export type DiagramStore = WithLiveblocks<DiagramState>
+
+/** A page as it was when deleted, enough to put it back. */
+export type DeletedPage = { page: PageTab; index: number; content: ParkedPage }
 
 const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (set, get) => {
   /** History entries for an edit about to replace the current diagram. */
@@ -751,14 +757,22 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
     },
 
     deletePage: (id) => {
+      get().endHistoryBatch()
+      finishLayoutAnimation?.()
       const { pages, activePageId, parked } = get()
-      if (pages.length < 2 || !pages.some((p) => p.id === id)) return
+      const index = pages.findIndex((p) => p.id === id)
+      if (pages.length < 2 || index === -1) return
+      const deleted: DeletedPage = {
+        page: pages[index],
+        index,
+        content: id === activePageId ? currentPage(get()) : (parked[id] ?? EMPTY_PAGE),
+      }
       const next = id === activePageId ? neighbourOf(pages, id) : undefined
       const remaining = { ...parked }
       delete remaining[id]
       if (!next) {
         set({ pages: pages.filter((p) => p.id !== id), parked: remaining })
-        return
+        return deleted
       }
       const opened = remaining[next.id] ?? EMPTY_PAGE
       delete remaining[next.id]
@@ -767,6 +781,23 @@ const createDiagramState: StateCreator<DiagramStore, [], [], DiagramState> = (se
         parked: remaining,
         ...onPage(next.id, get().presence),
         ...opened,
+        ...clearedUiState,
+      })
+      return deleted
+    },
+
+    restorePage: ({ page, index, content }) => {
+      const { pages, activePageId } = get()
+      // Already back (restored twice, or re-added by someone in the room).
+      if (pages.some((p) => p.id === page.id)) return
+      get().endHistoryBatch()
+      finishLayoutAnimation?.()
+      const at = Math.min(index, pages.length)
+      set({
+        pages: [...pages.slice(0, at), page, ...pages.slice(at)],
+        parked: { ...get().parked, [activePageId]: currentPage(get()) },
+        ...onPage(page.id, get().presence),
+        ...content,
         ...clearedUiState,
       })
     },

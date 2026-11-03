@@ -5,6 +5,7 @@ import { mod, shift } from '../../lib/platform'
 import { useDiagramStore } from '../../store/diagramStore'
 import { CleanUpMenu } from './CleanUpMenu'
 import { ExportMenu } from './ExportMenu'
+import { HistoryMenu } from './HistoryMenu'
 import { ShareMenu } from './ShareMenu'
 import { ToolbarButton, ToolbarDivider } from './ToolbarButton'
 
@@ -63,6 +64,7 @@ export function Toolbar({ actions, collab, onShowShortcuts, codeOpen, onToggleCo
         <ToolbarButton label="Save" shortcut={`${mod}S`} onClick={actions.save}>
           <Save size={16} />
         </ToolbarButton>
+        <HistoryMenu actions={actions} />
         <ToolbarButton label="Keyboard shortcuts" shortcut="?" onClick={onShowShortcuts}>
           <Keyboard size={16} />
         </ToolbarButton>

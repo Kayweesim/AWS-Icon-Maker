@@ -223,11 +223,20 @@ export function parseDiagram(input: unknown): Diagram {
   return { name, pages }
 }
 
-export function saveAutosave(diagram: Diagram) {
-  try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(toFile(diagram)))
-  } catch {
-    // Storage may be full or unavailable (private mode); autosave is best-effort.
+/**
+ * Saves the diagram for the next visit. If storage is full, `freeSpace` is asked to make room
+ * (by dropping old versions) until the save fits or it has nothing left to give.
+ */
+export function saveAutosave(diagram: Diagram, freeSpace: () => boolean = () => false) {
+  const json = JSON.stringify(toFile(diagram))
+  for (;;) {
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, json)
+      return
+    } catch {
+      // Storage may be full or unavailable (private mode); autosave is best-effort.
+      if (!freeSpace()) return
+    }
   }
 }
 

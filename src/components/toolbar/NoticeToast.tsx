@@ -14,6 +14,18 @@ export function NoticeToast({ notice, onDismiss }: { notice: Notice | null; onDi
         }`}
       >
         <span>{notice.text}</span>
+        {notice.action && (
+          <button
+            type="button"
+            onClick={() => {
+              notice.action!.run()
+              onDismiss()
+            }}
+            className="rounded px-1.5 py-0.5 font-medium text-blue-300 hover:bg-white/10 hover:text-blue-200"
+          >
+            {notice.action.label}
+          </button>
+        )}
         <button type="button" aria-label="Dismiss" onClick={onDismiss} className="rounded p-0.5 opacity-70 hover:opacity-100">
           <X size={14} />
         </button>

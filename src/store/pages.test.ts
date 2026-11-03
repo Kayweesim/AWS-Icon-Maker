@@ -101,6 +101,40 @@ describe('pages', () => {
     expect(onScreen()).toEqual(['a'])
   })
 
+  it('puts a deleted page back where it was, with its contents and undo history', () => {
+    state().addPage()
+    state().addIconNode({ iconId: 'b', name: 'b', path: '/aws-icons/services/Compute/Arch_b_48.svg' }, { x: 0, y: 0 })
+    state().addPage()
+    const [, second] = state().pages
+    state().selectPage(second.id)
+
+    const deleted = state().deletePage(second.id)
+    expect(names()).toEqual(['Page 1', 'Page 3'])
+
+    state().restorePage(deleted!)
+    expect(names()).toEqual(['Page 1', 'Page 2', 'Page 3'])
+    expect(state().activePageId).toBe(second.id)
+    expect(state().nodes.map((n) => n.data.label)).toEqual(['b'])
+    state().undo()
+    expect(onScreen()).toEqual([])
+
+    // Restoring again is harmless.
+    state().restorePage(deleted!)
+    expect(names()).toEqual(['Page 1', 'Page 2', 'Page 3'])
+  })
+
+  it('restores a page deleted from the background without losing the one in view', () => {
+    state().addPage()
+    const second = state().activePageId
+    state().addIconNode({ iconId: 'b', name: 'b', path: '/aws-icons/services/Compute/Arch_b_48.svg' }, { x: 0, y: 0 })
+    state().selectPage(state().pages[0].id)
+    state().restorePage(state().deletePage(second)!)
+
+    expect(onScreen().map((id) => state().nodes.find((n) => n.id === id)!.data.label)).toEqual(['b'])
+    state().selectPage(state().pages[0].id)
+    expect(onScreen()).toEqual(['a'])
+  })
+
   it('refuses to delete the last page', () => {
     state().deletePage(state().activePageId)
 

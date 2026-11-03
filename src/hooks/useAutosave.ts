@@ -1,11 +1,15 @@
 import { useEffect } from 'react'
 import { wholeDiagram } from '../lib/document'
 import { saveAutosave } from '../lib/persistence'
+import { AUTO_VERSION_INTERVAL_MS, dropOldestVersion, latestVersionTime, recordVersion } from '../lib/versions'
 import { useDiagramStore } from '../store/diagramStore'
 
 const DELAY_MS = 400
 
-/** Persists the diagram to localStorage shortly after every change. */
+/**
+ * Persists the diagram to localStorage shortly after every change, and keeps a version in the
+ * history every few minutes while editing continues.
+ */
 export function useAutosave() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -15,7 +19,10 @@ export function useAutosave() {
       clearTimeout(timer)
       if (!unsaved) return
       unsaved = false
-      saveAutosave(wholeDiagram(useDiagramStore.getState()))
+      const diagram = wholeDiagram(useDiagramStore.getState())
+      // Old versions give way if storage is full: the latest work matters most.
+      saveAutosave(diagram, dropOldestVersion)
+      if (Date.now() - latestVersionTime() >= AUTO_VERSION_INTERVAL_MS) recordVersion(diagram, 'auto')
     }
 
     const unsubscribe = useDiagramStore.subscribe((state, prev) => {

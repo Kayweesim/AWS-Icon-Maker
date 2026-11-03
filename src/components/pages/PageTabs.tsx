@@ -16,10 +16,11 @@ function useOthersByPage(): Record<string, string[]> {
   return byPage
 }
 
-function Tab({ id, name, active, closable }: { id: string; name: string; active: boolean; closable: boolean }) {
+type TabProps = { id: string; name: string; active: boolean; closable: boolean; onDelete: (id: string) => void }
+
+function Tab({ id, name, active, closable, onDelete }: TabProps) {
   const selectPage = useDiagramStore((s) => s.selectPage)
   const renamePage = useDiagramStore((s) => s.renamePage)
-  const deletePage = useDiagramStore((s) => s.deletePage)
   const visitors = useOthersByPage()[id] ?? []
   const [draft, setDraft] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -85,7 +86,7 @@ function Tab({ id, name, active, closable }: { id: string; name: string; active:
           aria-label={`Delete ${name}`}
           onClick={(event) => {
             event.stopPropagation()
-            deletePage(id)
+            onDelete(id)
           }}
           className="rounded p-0.5 text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-200 hover:text-zinc-700 focus:opacity-100"
         >
@@ -97,7 +98,7 @@ function Tab({ id, name, active, closable }: { id: string; name: string; active:
 }
 
 /** The sheet tabs along the bottom of the canvas. */
-export function PageTabs() {
+export function PageTabs({ onDeletePage }: { onDeletePage: (id: string) => void }) {
   const pages = useDiagramStore((s) => s.pages)
   const activePageId = useDiagramStore((s) => s.activePageId)
   const addPage = useDiagramStore((s) => s.addPage)
@@ -105,7 +106,7 @@ export function PageTabs() {
   return (
     <div role="tablist" aria-label="Pages" className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-t border-zinc-200 bg-zinc-50 px-2">
       {pages.map((page) => (
-        <Tab key={page.id} id={page.id} name={page.name} active={page.id === activePageId} closable={pages.length > 1} />
+        <Tab key={page.id} id={page.id} name={page.name} active={page.id === activePageId} closable={pages.length > 1} onDelete={onDeletePage} />
       ))}
       <button
         type="button"

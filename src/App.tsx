@@ -50,7 +50,7 @@ function Editor() {
           <QuickAddPanel />
           <NoticeToast notice={notice} onDismiss={dismissNotice} />
         </div>
-        <PageTabs />
+        <PageTabs onDeletePage={actions.deletePage} />
       </main>
       {showCode && <CodePanel onClose={() => setShowCode(false)} />}
       <ShortcutsDialog open={showShortcuts} onClose={closeHelp} />
